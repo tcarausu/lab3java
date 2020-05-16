@@ -10,16 +10,12 @@ public class RegexOperator {
     public static final String negateTheValue = "~";
     public static final String openParenthesis = "(";
     public static final String closeParenthesis = ")";
-    public static final String NIL = "NIL";
-    public static final String nextPairs = "nextPairs";
-    public static final String noMatchNextPairs = "noMatchNextPairs";
-    public static final String hasMatchingLiteral_NextPairs = "hasMatchingLiteral_NextPairs";
 
-    public static final String clauseValidity = " ?";
-    public static final String clauseAddition = " +";
-    public static final String clauseRemoval = " -";
-    public static final String clauseExit = "exit";
-    public static final String currentKnowledge = "> ";
-    public static final String startClauseTest = ">>> ";
+    public static final String modeH = "mode";
+    public static final String modelH = "model";
+    public static final String max_depth = "max_depth";
+    public static final String num_trees = "num_trees";
+    public static final String feature_ratio = "feature_ratio";
+    public static final String example_ratio = "example_ratio";
 
 }

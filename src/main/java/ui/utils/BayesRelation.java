@@ -34,8 +34,7 @@ public class BayesRelation {
 
 */
 
-/*
-
+        /*
        p ( Hi ∣ E )=  (p(E1 E2 E3 En ∣ Hi) * p (Hi))/p(E1 E2 E3 En)
 
         */

@@ -7,22 +7,49 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.*;
 
-import static ui.utils.Lab3Utils.setSunnyDay;
+import static ui.utils.RegexOperator.*;
 
 
 public class Lab3 {
 
     private static LinkedHashMap<String, LinkedList<String>> volleyballElements = new LinkedHashMap<>();
-    private static LinkedList<String> vElements;
+    private static LinkedHashMap<Integer, LinkedList<String>> columnsPos = new LinkedHashMap<>();
+    private static LinkedList<String> vElements, firstColumn, secondColumn, thirdColumn, forthColumn, labelColumn;
     private static String firstLine;
     private static LinkedList<String> firstLineSet;
 
+    private static String modeHyper;
+    private static String modelHyper;
+    private static double depthHyper;
+    private static double nrTreesHyper;
+    private static double featRatioHyper;
+    private static double exRatioHyper;
 
     public static void main(String[] args) throws FileNotFoundException {
 
+        setColumnPosition();
+
+
+        getVolleyball();
+        getID3();
+    }
+
+    private static void setColumnPosition() {
+        firstColumn = new LinkedList<>();
+        secondColumn = new LinkedList<>();
+        thirdColumn = new LinkedList<>();
+        forthColumn = new LinkedList<>();
+        labelColumn = new LinkedList<>();
+
+        columnsPos.put(0, firstColumn);
+        columnsPos.put(1, secondColumn);
+        columnsPos.put(2, thirdColumn);
+        columnsPos.put(3, forthColumn);
+        columnsPos.put(4, labelColumn);
+    }
+
+    private static void getVolleyball() throws FileNotFoundException {
         Scanner interactive = new Scanner(new File(Constant.volleyball));
-//            Scanner interactive = new Scanner(new File(Constant.id3));
-        LinkedList<String> inputsToTest = new LinkedList<>();
 
         while (interactive.hasNext()) {
             String knowledge = interactive.nextLine();
@@ -30,22 +57,98 @@ public class Lab3 {
             String[] elems = knowledge.split(",");
             vElements = new LinkedList<>(Arrays.asList(elems));
 
-            inputsToTest.add(knowledge);
             volleyballElements.put(knowledge, vElements);
             String s = "s";
         }
 
         Iterator<String> iteratorK = volleyballElements.keySet().iterator();
-        String firstKey = iteratorK.next();
+        String headerKey = iteratorK.next();
 
         Iterator<LinkedList<String>> iteratorV = volleyballElements.values().iterator();
-        LinkedList<String> firstValue = iteratorV.next();
+        LinkedList<String> headerValue = iteratorV.next();
+        String classLabel = headerValue.getLast();
 
-        setSunnyDay();
+//        Set<LinkedList<String>> values = (Set<LinkedList<String>>) volleyballElements.values();
+        volleyballElements.forEach((key, value) -> {
+            String currKey = key;
+            LinkedList<String> currValues = value;
+
+            firstColumn.add(currValues.getFirst());
+            labelColumn.add(currValues.getLast());
+
+            for (int i = currValues.size() - 2; i > 0; i--) {
+                String currentEl = currValues.get(i);
+                int finalI = i;
+                columnsPos.forEach((keyPos, valuePos)->{
+                    if(finalI ==keyPos){
+                        valuePos.add(currentEl);
+                    }
+                });
+            }
+        });
+
+        //   setSunnyDay(); was thinking of setting some values not sure is even needed
+
+        String s = "s";
+    }
+
+    private static void getID3() throws FileNotFoundException {
+        Scanner interactive = new Scanner(new File(Constant.id3));
+        LinkedList<String> getID3 = new LinkedList<>();
+
+        while (interactive.hasNext()) {
+            String knowledge = interactive.nextLine();
+
+
+            if (knowledge.contains(modeH) && modeHyper == null) {
+
+                modeHyper = retrieveHyperParam(knowledge);
+            }
+
+            if (knowledge.contains(modelH)) {
+                modelHyper = retrieveHyperParam(knowledge);
+            }
+
+            if (knowledge.contains(max_depth)) {
+                depthHyper = retrieveHyperDoubleParam(knowledge);
+            }
+
+            if (knowledge.contains(num_trees)) {
+                nrTreesHyper = retrieveHyperDoubleParam(knowledge);
+            }
+
+            if (knowledge.contains(feature_ratio)) {
+                featRatioHyper = retrieveHyperDoubleParam(knowledge);
+            }
+
+            if (knowledge.contains(example_ratio)) {
+                exRatioHyper = retrieveHyperDoubleParam(knowledge);
+            }
+
+            getID3.add(knowledge);
+        }
+
 
         String s = "s";
 
 
+    }
+
+    private static String retrieveHyperParam(String knowledge) {
+        String[] elems = knowledge.split("=");
+        LinkedList<String> knowElements = new LinkedList<>(Arrays.asList(elems));
+        if (knowElements.getFirst().equals(modeH)) {
+            return knowElements.getLast();
+        } else if (knowElements.getFirst().equals(modelH)) {
+            return knowElements.getLast();
+        }
+        return null;
+    }
+
+    private static double retrieveHyperDoubleParam(String knowledge) {
+        String[] elems = knowledge.split("=");
+        LinkedList<String> knowElements = new LinkedList<>(Arrays.asList(elems));
+        return Double.parseDouble(knowElements.getLast());
     }
 
     private static double concentrationVery(double x) {
