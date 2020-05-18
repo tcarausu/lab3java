@@ -5,7 +5,11 @@ import ui.utils.Constant;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.Scanner;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static ui.utils.RegexOperator.*;
 
@@ -15,9 +19,15 @@ public class Lab3 {
     private static LinkedHashMap<String, LinkedList<String>> volleyballElements = new LinkedHashMap<>();
     private static LinkedHashMap<Integer, LinkedList<String>> columnsPos = new LinkedHashMap<>();
     private static LinkedList<String> vElements, firstColumn, secondColumn, thirdColumn, forthColumn, labelColumn;
-    private static String firstLine;
-    private static LinkedList<String> firstLineSet;
 
+    private static LinkedHashMap<String, LinkedHashMap<String, Integer>> weatherMap = new LinkedHashMap<>();
+    private static LinkedHashMap<String, LinkedHashMap<String, Integer>> tempMap = new LinkedHashMap<>();
+    private static LinkedHashMap<String, LinkedHashMap<String, Integer>> humMap = new LinkedHashMap<>();
+    private static LinkedHashMap<String, LinkedHashMap<String, Integer>> windMap = new LinkedHashMap<>();
+    private static LinkedHashMap<String, LinkedHashMap<String, Integer>> playMap = new LinkedHashMap<>();
+
+    static LinkedHashMap<String, Integer> countElems = new LinkedHashMap<>();
+    private static String currentElementsFromColumn;
     private static String modeHyper;
     private static String modelHyper;
     private static double depthHyper;
@@ -61,16 +71,15 @@ public class Lab3 {
             String s = "s";
         }
 
-        Iterator<String> iteratorK = volleyballElements.keySet().iterator();
-        String headerKey = iteratorK.next();
+//        Iterator<String> iteratorK = volleyballElements.keySet().iterator();
+//        String headerKey = iteratorK.next();
 
-        Iterator<LinkedList<String>> iteratorV = volleyballElements.values().iterator();
-        LinkedList<String> headerValue = iteratorV.next();
-        String classLabel = headerValue.getLast();
+//        Iterator<LinkedList<String>> iteratorV = volleyballElements.values().iterator();
+//        LinkedList<String> headerValue = iteratorV.next();
+//        String classLabel = headerValue.getLast();
 
-//        Set<LinkedList<String>> values = (Set<LinkedList<String>>) volleyballElements.values();
         volleyballElements.forEach((key, value) -> {
-            String currKey = key;
+//            String currKey = key;
             LinkedList<String> currValues = value;
 
             firstColumn.add(currValues.getFirst());
@@ -79,17 +88,85 @@ public class Lab3 {
             for (int i = currValues.size() - 2; i > 0; i--) {
                 String currentEl = currValues.get(i);
                 int finalI = i;
-                columnsPos.forEach((keyPos, valuePos)->{
-                    if(finalI ==keyPos){
+                columnsPos.forEach((keyPos, valuePos) -> {
+                    if (finalI == keyPos) {
                         valuePos.add(currentEl);
                     }
                 });
             }
         });
 
+
+        AtomicInteger count = new AtomicInteger(1);
+
+        LinkedList<String> weatherCount = new LinkedList<>();
+
+        for (String weather : firstColumn) {
+            retrieveNrOfDistinctElementsPerColumn(count, weatherCount, weather, col1Name);
+        }
+
+        LinkedHashMap<String, Integer> localElems = new LinkedHashMap<>(countElems);
+        weatherMap.put(col1Name, localElems);
+        countElems.clear();
+        count = new AtomicInteger(1);
+
+        for (String temp : secondColumn) {
+            retrieveNrOfDistinctElementsPerColumn(count, weatherCount, temp, col2Name);
+        }
+
+        localElems = new LinkedHashMap<>(countElems);
+        weatherMap.put(col2Name, localElems);
+        countElems.clear();
+        count = new AtomicInteger(1);
+
+        for (String hum : thirdColumn) {
+            retrieveNrOfDistinctElementsPerColumn(count, weatherCount, hum, col3Name);
+        }
+
+        localElems = new LinkedHashMap<>(countElems);
+        weatherMap.put(col3Name, localElems);
+        countElems.clear();
+        count = new AtomicInteger(1);
+
+        for (String wind : forthColumn) {
+            retrieveNrOfDistinctElementsPerColumn(count, weatherCount, wind, col4Name);
+
+        }
+
+        localElems = new LinkedHashMap<>(countElems);
+        weatherMap.put(col4Name, localElems);
+        countElems.clear();
+        count = new AtomicInteger(1);
+
+        for (String play : labelColumn) {
+            retrieveNrOfDistinctElementsPerColumn(count, weatherCount, play, labelColName);
+
+        }
+
+        localElems = new LinkedHashMap<>(countElems);
+        weatherMap.put(labelColName, localElems);
+        countElems.clear();
+
         //   setSunnyDay(); was thinking of setting some values not sure is even needed
 
         String s = "s";
+    }
+
+    private static void retrieveNrOfDistinctElementsPerColumn(AtomicInteger count, LinkedList<String> weatherCount, String weather, String colName) {
+        if (!weatherCount.contains(weather)) {
+            if (!weather.equals(colName)) {
+                weatherCount.add(weather);
+                countElems.put(weather, count.get());
+            }
+        } else if (weatherCount.contains(weather)) {
+            if (!countElems.containsKey(weather)) {
+                countElems.put(weather, count.getAndIncrement());
+            } else {
+                count = new AtomicInteger(countElems.get(weather));
+                count.getAndIncrement();
+                countElems.put(weather, count.get());
+            }
+        }
     }
 
     private static void getID3() throws FileNotFoundException {
@@ -98,7 +175,6 @@ public class Lab3 {
 
         while (interactive.hasNext()) {
             String knowledge = interactive.nextLine();
-
 
             if (knowledge.contains(modeH) && modeHyper == null) {
 
