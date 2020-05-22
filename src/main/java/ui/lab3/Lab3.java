@@ -2,6 +2,7 @@ package ui.lab3;
 
 
 import ui.utils.Constant;
+import ui.utils.ID3Element;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -10,23 +11,20 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.Scanner;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static ui.utils.RegexOperator.*;
 
 
 public class Lab3 {
-
-    private static LinkedHashMap<String, LinkedList<String>> volleyballElements = new LinkedHashMap<>();
-    private static LinkedHashMap<Integer, LinkedList<String>> columnsPos = new LinkedHashMap<>();
+    private static final LinkedHashMap<String, LinkedList<String>> lineToVbElements = new LinkedHashMap<>();
+    private static final LinkedHashMap<Integer, LinkedList<String>> columnsPos = new LinkedHashMap<>();
     private static LinkedList<String> vElements, firstColumn, secondColumn, thirdColumn, forthColumn, labelColumn;
 
-    private static LinkedHashMap<String, LinkedHashMap<String, Integer>> weatherMap = new LinkedHashMap<>();
-    private static LinkedHashMap<String, LinkedHashMap<String, Integer>> tempMap = new LinkedHashMap<>();
-    private static LinkedHashMap<String, LinkedHashMap<String, Integer>> humMap = new LinkedHashMap<>();
-    private static LinkedHashMap<String, LinkedHashMap<String, Integer>> windMap = new LinkedHashMap<>();
-    private static LinkedHashMap<String, LinkedHashMap<String, Integer>> playMap = new LinkedHashMap<>();
+    private static final LinkedHashMap<String, LinkedHashMap<String, Integer>> volleyBallMatchMap = new LinkedHashMap<>();
+    private static final LinkedList<ID3Element> id3elements = new LinkedList<>();
 
-    static LinkedHashMap<String, Integer> countElems = new LinkedHashMap<>();
+    private static LinkedHashMap<String, Integer> countElements = new LinkedHashMap<>();
     private static String currentElementsFromColumn;
     private static String modeHyper;
     private static String modelHyper;
@@ -34,6 +32,15 @@ public class Lab3 {
     private static double nrTreesHyper;
     private static double featRatioHyper;
     private static double exRatioHyper;
+
+    private static final AtomicReference<Double> nrOfLabelYes = new AtomicReference<>((double) 0);
+    private static final AtomicReference<Double> nrOfLabelNo = new AtomicReference<>((double) 0);
+
+    private static final LinkedHashMap<String, LinkedList<Double>> labelRelativeFreq = new LinkedHashMap<>();
+    private static final LinkedHashMap<String, Double> countPerSetComb = new LinkedHashMap<>();
+    private static final LinkedHashMap<String, Double> likelihoodPerSetComb = new LinkedHashMap<>();
+    private static LinkedList<Double> valueWithProbability;
+
 
     public static void main(String[] args) throws FileNotFoundException {
 
@@ -44,7 +51,7 @@ public class Lab3 {
         getID3();
     }
 
-    private static void setColumnPosition() {
+    public static void setColumnPosition() {
         firstColumn = new LinkedList<>();
         secondColumn = new LinkedList<>();
         thirdColumn = new LinkedList<>();
@@ -58,7 +65,7 @@ public class Lab3 {
         columnsPos.put(4, labelColumn);
     }
 
-    private static void getVolleyball() throws FileNotFoundException {
+    public static void getVolleyball() throws FileNotFoundException {
         Scanner interactive = new Scanner(new File(Constant.volleyball));
 
         while (interactive.hasNext()) {
@@ -67,26 +74,16 @@ public class Lab3 {
             String[] elems = knowledge.split(",");
             vElements = new LinkedList<>(Arrays.asList(elems));
 
-            volleyballElements.put(knowledge, vElements);
+            lineToVbElements.put(knowledge, vElements);
             String s = "s";
         }
 
-//        Iterator<String> iteratorK = volleyballElements.keySet().iterator();
-//        String headerKey = iteratorK.next();
+        lineToVbElements.forEach((key, value) -> {
+            firstColumn.add(value.getFirst());
+            labelColumn.add(value.getLast());
 
-//        Iterator<LinkedList<String>> iteratorV = volleyballElements.values().iterator();
-//        LinkedList<String> headerValue = iteratorV.next();
-//        String classLabel = headerValue.getLast();
-
-        volleyballElements.forEach((key, value) -> {
-//            String currKey = key;
-            LinkedList<String> currValues = value;
-
-            firstColumn.add(currValues.getFirst());
-            labelColumn.add(currValues.getLast());
-
-            for (int i = currValues.size() - 2; i > 0; i--) {
-                String currentEl = currValues.get(i);
+            for (int i = value.size() - 2; i > 0; i--) {
+                String currentEl = value.get(i);
                 int finalI = i;
                 columnsPos.forEach((keyPos, valuePos) -> {
                     if (finalI == keyPos) {
@@ -97,6 +94,82 @@ public class Lab3 {
         });
 
 
+        for (int i = 1; i < lineToVbElements.size(); i++) {
+            String weather = firstColumn.get(i);
+            String temperature = secondColumn.get(i);
+            String humidity = thirdColumn.get(i);
+            String wind = forthColumn.get(i);
+            String play = labelColumn.get(i);
+            ID3Element element = new ID3Element(weather, temperature, humidity, wind, play);
+            id3elements.add(element);
+        }
+
+        getNrOfElementsForEachValuePerColumn();
+
+        getNrByLabelCol();
+
+        for (ID3Element element : id3elements) {
+            String weather = element.getWeather();
+            String temp = element.getTemp();
+            String hum = element.getHum();
+            String wind = element.getWind();
+            String play = element.getPlay();
+
+            String weatherLikelihood = weather.concat("|" + play);
+            String tempLikelihood = temp.concat("|" + play);
+            String humLikelihood = hum.concat("|" + play);
+            String windLikelihood = wind.concat("|" + play);
+
+            getPlayCountPerSetCombination(weatherLikelihood);
+
+            getPlayCountPerSetCombination(tempLikelihood);
+
+            getPlayCountPerSetCombination(humLikelihood);
+
+            getPlayCountPerSetCombination(windLikelihood);
+
+            String s = "s";
+
+        }
+
+        countPerSetComb.forEach((key, value) -> {
+            double likelihoodOfLabel = 0;
+            if (key.contains(labelColYes)) {
+                likelihoodOfLabel = nrOfLabelYes.get();
+            } else if (key.contains(labelColNo)) {
+                likelihoodOfLabel = nrOfLabelNo.get();
+            }
+            double likelihoodOfSubset = getLikelihoodByPlayCount(value, likelihoodOfLabel);
+            likelihoodPerSetComb.put(key, likelihoodOfSubset);
+
+        });
+
+
+        String s = "s";
+    }
+
+    private static void getPlayCountPerSetCombination(String likelihood) {
+        if (!countPerSetComb.containsKey(likelihood)) {
+            countPerSetComb.put(likelihood, 1.0);
+        } else {
+            double currentLikelihood = countPerSetComb.get(likelihood);
+            countPerSetComb.put(likelihood, currentLikelihood + 1);
+        }
+    }
+
+    private static void getNrByLabelCol() {
+        labelRelativeFreq.forEach((key, value) -> {
+            if (key.equals(labelColYes)) {
+                double totalY = value.get(0); //we saved it as 1st element
+                nrOfLabelYes.set(totalY);
+            } else if (key.equals(labelColNo)) {
+                double totalY = value.get(0); //we saved it as 1st element
+                nrOfLabelNo.set(totalY);
+            }
+        });
+    }
+
+    private static void getNrOfElementsForEachValuePerColumn() {
         AtomicInteger count = new AtomicInteger(1);
 
         LinkedList<String> weatherCount = new LinkedList<>();
@@ -105,71 +178,119 @@ public class Lab3 {
             retrieveNrOfDistinctElementsPerColumn(count, weatherCount, weather, col1Name);
         }
 
-        LinkedHashMap<String, Integer> localElems = new LinkedHashMap<>(countElems);
-        weatherMap.put(col1Name, localElems);
-        countElems.clear();
+        LinkedHashMap<String, Integer> localElems = new LinkedHashMap<>(countElements);
+        volleyBallMatchMap.put(col1Name, localElems);
+        countElements.clear();
         count = new AtomicInteger(1);
 
         for (String temp : secondColumn) {
             retrieveNrOfDistinctElementsPerColumn(count, weatherCount, temp, col2Name);
         }
 
-        localElems = new LinkedHashMap<>(countElems);
-        weatherMap.put(col2Name, localElems);
-        countElems.clear();
+        localElems = new LinkedHashMap<>(countElements);
+        volleyBallMatchMap.put(col2Name, localElems);
+        countElements.clear();
         count = new AtomicInteger(1);
 
         for (String hum : thirdColumn) {
             retrieveNrOfDistinctElementsPerColumn(count, weatherCount, hum, col3Name);
         }
 
-        localElems = new LinkedHashMap<>(countElems);
-        weatherMap.put(col3Name, localElems);
-        countElems.clear();
+        localElems = new LinkedHashMap<>(countElements);
+        volleyBallMatchMap.put(col3Name, localElems);
+        countElements.clear();
         count = new AtomicInteger(1);
+
 
         for (String wind : forthColumn) {
             retrieveNrOfDistinctElementsPerColumn(count, weatherCount, wind, col4Name);
-
         }
 
-        localElems = new LinkedHashMap<>(countElems);
-        weatherMap.put(col4Name, localElems);
-        countElems.clear();
+        localElems = new LinkedHashMap<>(countElements);
+        volleyBallMatchMap.put(col4Name, localElems);
+        countElements.clear();
         count = new AtomicInteger(1);
+
 
         for (String play : labelColumn) {
             retrieveNrOfDistinctElementsPerColumn(count, weatherCount, play, labelColName);
-
         }
 
-        localElems = new LinkedHashMap<>(countElems);
-        weatherMap.put(labelColName, localElems);
-        countElems.clear();
+        localElems = new LinkedHashMap<>(countElements);
+        volleyBallMatchMap.put(labelColName, localElems);
+        deriveLabelColumnProbabilities(localElems);
+        countElements.clear();
 
-        //   setSunnyDay(); was thinking of setting some values not sure is even needed
-
-        String s = "s";
     }
 
-    private static void retrieveNrOfDistinctElementsPerColumn(AtomicInteger count, LinkedList<String> weatherCount, String weather, String colName) {
+    private static double getPriorProbabilityByRelativeFrequency(double nrToTest) {
+        //Subtracting the first line (because it contains the name of the columns)
+        double nrOfElementsInTotal = lineToVbElements.size() - 1;
+        return nrToTest / nrOfElementsInTotal;
+    }
+
+    private static double getLikelihoodByPlayCount(double nrToTest, double play) {
+        return nrToTest / play;
+    }
+
+    private static void retrieveNrOfDistinctElementsPerColumn(AtomicInteger count, LinkedList<String> weatherCount,
+                                                              String weather, String colName) {
         if (!weatherCount.contains(weather)) {
             if (!weather.equals(colName)) {
                 weatherCount.add(weather);
-                countElems.put(weather, count.get());
+                countElements.put(weather, count.get());
             }
         } else if (weatherCount.contains(weather)) {
-            if (!countElems.containsKey(weather)) {
-                countElems.put(weather, count.getAndIncrement());
+            if (!countElements.containsKey(weather)) {
+                countElements.put(weather, count.getAndIncrement());
             } else {
-                count = new AtomicInteger(countElems.get(weather));
+                count = new AtomicInteger(countElements.get(weather));
                 count.getAndIncrement();
-                countElems.put(weather, count.get());
+                countElements.put(weather, count.get());
             }
         }
     }
 
-    private static void getID3() throws FileNotFoundException {
+    private static void deriveLabelColumnProbabilities(LinkedHashMap<String, Integer> elements) {
+        elements.forEach((key, value) -> {
+            if (key.equals(labelColYes)) {
+                double probability = getPriorProbabilityByRelativeFrequency(value);
+                valueWithProbability = new LinkedList<>();
+                valueWithProbability.add(Double.valueOf(value));
+                valueWithProbability.add(probability);
+                labelRelativeFreq.put(key, valueWithProbability);
+
+                String s = "s";
+            } else if (key.equals(labelColNo)) {
+                double probability = getPriorProbabilityByRelativeFrequency(value);
+                valueWithProbability = new LinkedList<>();
+                valueWithProbability.add(Double.valueOf(value));
+                valueWithProbability.add(probability);
+                labelRelativeFreq.put(key, valueWithProbability);
+
+                String s = "s";
+            }
+        });
+    }
+
+    private static String retrieveHyperParam(String knowledge) {
+        String[] elems = knowledge.split("=");
+        LinkedList<String> knowElements = new LinkedList<>(Arrays.asList(elems));
+        if (knowElements.getFirst().equals(modeH)) {
+            return knowElements.getLast();
+        } else if (knowElements.getFirst().equals(modelH)) {
+            return knowElements.getLast();
+        }
+        return null;
+    }
+
+    private static double retrieveHyperDoubleParam(String knowledge) {
+        String[] elems = knowledge.split("=");
+        LinkedList<String> knowElements = new LinkedList<>(Arrays.asList(elems));
+        return Double.parseDouble(knowElements.getLast());
+    }
+
+    public static void getID3() throws FileNotFoundException {
         Scanner interactive = new Scanner(new File(Constant.id3));
         LinkedList<String> getID3 = new LinkedList<>();
 
@@ -177,7 +298,6 @@ public class Lab3 {
             String knowledge = interactive.nextLine();
 
             if (knowledge.contains(modeH) && modeHyper == null) {
-
                 modeHyper = retrieveHyperParam(knowledge);
             }
 
@@ -208,52 +328,6 @@ public class Lab3 {
         String s = "s";
 
 
-    }
-
-    private static String retrieveHyperParam(String knowledge) {
-        String[] elems = knowledge.split("=");
-        LinkedList<String> knowElements = new LinkedList<>(Arrays.asList(elems));
-        if (knowElements.getFirst().equals(modeH)) {
-            return knowElements.getLast();
-        } else if (knowElements.getFirst().equals(modelH)) {
-            return knowElements.getLast();
-        }
-        return null;
-    }
-
-    private static double retrieveHyperDoubleParam(String knowledge) {
-        String[] elems = knowledge.split("=");
-        LinkedList<String> knowElements = new LinkedList<>(Arrays.asList(elems));
-        return Double.parseDouble(knowElements.getLast());
-    }
-
-    private static double concentrationVery(double x) {
-        return Math.pow(x, 2); // Modifier Very is "variable" to the Power of 2
-    }
-
-    private static double dilatationMoreOrLess(double x) {
-        return Math.pow(x, 0.5); // Modifier MoreOrLess is "variable" to the Power of 1/2
-    }
-
-    private static double unionOfSetsOr(double membershipAofX, double membershipBofX) {
-        return Math.max(membershipAofX, membershipBofX); // OrOperator of MembershipA and MembershipB
-    }
-
-    private static double intersectionOfSetsAnd(double membershipAofX, double membershipBofX) {
-        return Math.min(membershipAofX, membershipBofX); // AndOperator of MembershipA and MembershipB
-    }
-
-    private static double negationOfSetA(double x) {
-        return 1 - x; // AndOperator of MembershipA and MembershipB
-    }
-
-    private static double approxEqualsMemberWithSet(double membershipAofV, LinkedList<Double> setVW) {
-        if (setVW.size() == 2) {
-            // approxEqualsMemberWithSet Math.min(membershipAofV,setVW)
-            return Math.max(Math.min(membershipAofV, setVW.getFirst()), Math.min(membershipAofV, setVW.getLast()));
-        } else {
-            return -1;
-        }
     }
 
 }

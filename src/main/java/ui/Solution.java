@@ -1,11 +1,25 @@
 package ui;
 
+import java.io.FileNotFoundException;
+
+import static ui.lab3.Lab3.*;
+
 public class Solution {
 
 	public static void main(String ... args) {
-		System.out.println("Ovime kreće Vaš program.");
-		for(String arg : args) {
-			System.out.printf("Predan argument %s%n", arg);
+
+		setColumnPosition();
+
+
+		try {
+			getVolleyball();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
+		try {
+			getID3();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
 		}
 	}
 
