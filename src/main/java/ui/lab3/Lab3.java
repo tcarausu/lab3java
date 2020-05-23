@@ -2,11 +2,10 @@ package ui.lab3;
 
 
 import ui.utils.Constant;
-import ui.utils.ID3Element;
+import ui.utils.ID3ElementList;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.text.DecimalFormat;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -15,12 +14,16 @@ import static ui.utils.RegexOperator.*;
 
 
 public class Lab3 {
-    private static final LinkedHashMap<String, LinkedList<String>> lineToVbElements = new LinkedHashMap<>();
-    private static final LinkedHashMap<Integer, LinkedList<String>> columnsPos = new LinkedHashMap<>();
-    private static LinkedList<String> vElements, firstColumn, secondColumn, thirdColumn, forthColumn, labelColumn;
+    //    private static final LinkedHashMap<String, LinkedList<String>> lineToVbElements = new LinkedHashMap<>();
+//    private static LinkedList<String> vElements, firstColumn, secondColumn, thirdColumn, forthColumn, labelColumn;
+
+//    private static final LinkedHashMap<Integer, LinkedList<String>> columnList = new LinkedHashMap<>();
+    private static final LinkedHashMap<Integer, String> columnList = new LinkedHashMap<>();
+    private static LinkedList<String> vElements;
 
     private static final LinkedHashMap<String, LinkedHashMap<String, Integer>> volleyBallMatchMap = new LinkedHashMap<>();
-    private static final LinkedList<ID3Element> id3elements = new LinkedList<>();
+    private static final LinkedList<ID3ElementList> id3Elements = new LinkedList<>();
+    private static String labelColumnName;
 
     private static LinkedHashMap<String, Integer> countElements = new LinkedHashMap<>();
     private static final LinkedList<String> getID3 = new LinkedList<>();
@@ -44,201 +47,181 @@ public class Lab3 {
     public static void main(String[] args) throws FileNotFoundException {
         getID3();
 
-        setColumnPosition();
+//        setColumnPosition();
 
-        getVolleyball();
+        retrieveFileData(new File(Constant.volleyball));
+//        retrieveFileData(new File(Constant.titanic_train_categorical));
+
+        getNrOfElementsForEachValuePerColumn();
+//
+//        getNrByLabelCol();
+//
+//        for (ID3Element element : id3elements) {
+//            String play = element.getPlay();
+//
+//            String weatherLikelihood = element.getWeather().concat("|" + play);
+//            String tempLikelihood = element.getTemp().concat("|" + play);
+//            String humLikelihood = element.getHum().concat("|" + play);
+//            String windLikelihood = element.getWind().concat("|" + play);
+//
+//            getPlayCountPerSetCombination(weatherLikelihood);
+//
+//            getPlayCountPerSetCombination(tempLikelihood);
+//
+//            getPlayCountPerSetCombination(humLikelihood);
+//
+//            getPlayCountPerSetCombination(windLikelihood);
+//
+//        }
+//
+//        retrieveLikelihoodOfElements();
+//
+//        likelihoodAndOutput();
     }
 
-    public static void setColumnPosition() {
-        firstColumn = new LinkedList<>();
-        secondColumn = new LinkedList<>();
-        thirdColumn = new LinkedList<>();
-        forthColumn = new LinkedList<>();
-        labelColumn = new LinkedList<>();
+//    public static void setColumnPosition() {
+//        firstColumn = new LinkedList<>();
+//        secondColumn = new LinkedList<>();
+//        thirdColumn = new LinkedList<>();
+//        forthColumn = new LinkedList<>();
+//        labelColumn = new LinkedList<>();
+//
+//        columnsPos.put(0, firstColumn);
+//        columnsPos.put(1, secondColumn);
+//        columnsPos.put(2, thirdColumn);
+//        columnsPos.put(3, forthColumn);
+//        columnsPos.put(4, labelColumn);
+//    }
 
-        columnsPos.put(0, firstColumn);
-        columnsPos.put(1, secondColumn);
-        columnsPos.put(2, thirdColumn);
-        columnsPos.put(3, forthColumn);
-        columnsPos.put(4, labelColumn);
-    }
-
-    public static void getVolleyball() throws FileNotFoundException {
-        Scanner interactive = new Scanner(new File(Constant.volleyball));
+    public static void retrieveFileData(File retrieveFile) throws FileNotFoundException {
+        Scanner interactive = new Scanner(retrieveFile);
 
         while (interactive.hasNext()) {
             String knowledge = interactive.nextLine();
 
             String[] elems = knowledge.split(",");
             vElements = new LinkedList<>(Arrays.asList(elems));
-
-            lineToVbElements.put(knowledge, vElements);
+            ID3ElementList element = new ID3ElementList(vElements);
+            id3Elements.add(element);
             String s = "s";
         }
 
-        lineToVbElements.forEach((key, value) -> {
-            firstColumn.add(value.getFirst());
-            labelColumn.add(value.getLast());
 
-            for (int i = value.size() - 2; i > 0; i--) {
-                String currentEl = value.get(i);
-                int finalI = i;
-                columnsPos.forEach((keyPos, valuePos) -> {
-                    if (finalI == keyPos) {
-                        valuePos.add(currentEl);
-                    }
-                });
-            }
-        });
+    }
 
-
-        for (int i = 1; i < lineToVbElements.size(); i++) {
-            String weather = firstColumn.get(i);
-            String temperature = secondColumn.get(i);
-            String humidity = thirdColumn.get(i);
-            String wind = forthColumn.get(i);
-            String play = labelColumn.get(i);
-            ID3Element element = new ID3Element(weather, temperature, humidity, wind, play);
-            id3elements.add(element);
-        }
-
-        getNrOfElementsForEachValuePerColumn();
-
-        getNrByLabelCol();
-
-        for (ID3Element element : id3elements) {
-            String play = element.getPlay();
-
-            String weatherLikelihood = element.getWeather().concat("|" + play);
-            String tempLikelihood = element.getTemp().concat("|" + play);
-            String humLikelihood = element.getHum().concat("|" + play);
-            String windLikelihood = element.getWind().concat("|" + play);
-
-            getPlayCountPerSetCombination(weatherLikelihood);
-
-            getPlayCountPerSetCombination(tempLikelihood);
-
-            getPlayCountPerSetCombination(humLikelihood);
-
-            getPlayCountPerSetCombination(windLikelihood);
-
-        }
-
-        retrieveLikelihoodOfElements();
-
-        computeMapHypothesis();
+    private static void likelihoodAndOutput() {
+        computeMapHypothesis(likelihoodPerSetComb);
 
         StringBuilder maxOutput = new StringBuilder();
-        int count = 0;
         for (String maxHypo : mapHypothesisConsoleResults) {
             String[] label = maxHypo.split("\\|");
             LinkedList<String> arr = new LinkedList<>(Arrays.asList(label));
             maxOutput.append(arr.getLast()).append(" ");
-            count++;
         }
         System.out.println(maxOutput);
         String s = "s";
     }
 
-    private static void computeMapHypothesis() {
-        for (ID3Element element : id3elements) {
-            String weather = element.getWeather();
-            String temp = element.getTemp();
-            String hum = element.getHum();
-            String wind = element.getWind();
-            String play = element.getPlay();
+    private static void computeMapHypothesis(LinkedHashMap<String, Double> computedSetComb) {
 
-            String weatherLikelihood = weather.concat("|" + play);
-            String tempLikelihood = temp.concat("|" + play);
-            String humLikelihood = hum.concat("|" + play);
-            String windLikelihood = wind.concat("|" + play);
-
-            LinkedList<String> likelihoodOfElements = new LinkedList<>();
-            likelihoodOfElements.add(weatherLikelihood);
-            likelihoodOfElements.add(tempLikelihood);
-            likelihoodOfElements.add(humLikelihood);
-            likelihoodOfElements.add(windLikelihood);
-
-            AtomicReference<Double> mapYes = new AtomicReference<>((double) 1);
-            AtomicReference<Double> mapNo = new AtomicReference<>((double) 1);
-
-
-            likelihoodPerSetComb.forEach((key, value) -> {
-                if (key.equals(weatherLikelihood)) {
-                    retrieveMapYesAndNo(mapYes, mapNo, key, value, likelihoodOfElements);
-                }
-                String s = "s";
-            });
-            likelihoodPerSetComb.forEach((key, value) -> {
-                if (key.equals(tempLikelihood)) {
-                    retrieveMapYesAndNo(mapYes, mapNo, key, value, likelihoodOfElements);
-                }
-                String s = "s";
-            });
-            likelihoodPerSetComb.forEach((key, value) -> {
-                if (key.equals(humLikelihood)) {
-                    retrieveMapYesAndNo(mapYes, mapNo, key, value, likelihoodOfElements);
-                }
-                String s = "s";
-
-            });
-            likelihoodPerSetComb.forEach((key, value) -> {
-                if (key.equals(windLikelihood)) {
-                    retrieveMapYesAndNo(mapYes, mapNo, key, value, likelihoodOfElements);
-                }
-                String s = "s";
-            });
-
-            for (Map.Entry<String, LinkedList<Double>> label : labelRelativeFreq.entrySet()) {
-                String key = label.getKey();
-                LinkedList<Double> value = label.getValue();
-
-                if (key.equals(labelColYes)) {
-                    multiplyAllColumnsToLabelColumn(mapYes, mapNo, key, value, labelColNo);
-                } else if (key.equals(labelColNo)) {
-                    multiplyAllColumnsToLabelColumn(mapNo, mapYes, key, value, labelColYes);
-                }
-
-                DecimalFormat newFormat = new DecimalFormat("#.####");
-                double maxHypothesis = Math.max(mapYes.get(), mapNo.get());
-                if (maxHypothesis == mapYes.get()) {
-                    double twoDecimal = Double.parseDouble(newFormat.format(mapYes.get()));
-
-                    if (!mapHypothesisResults.contains(twoDecimal)) {
-                        mapHypothesisResults.add(twoDecimal);
-                        String consoleResult = twoDecimal + "|" + labelColYes;
-                        mapHypothesisConsoleResults.add(consoleResult);
-                    }
-                } else {
-                    double twoDecimal = Double.parseDouble(newFormat.format(mapNo.get()));
-
-                    if (!mapHypothesisResults.contains(twoDecimal)) {
-                        mapHypothesisResults.add(twoDecimal);
-                        String consoleResult = twoDecimal + "|" + labelColNo;
-                        mapHypothesisConsoleResults.add(consoleResult);
-                    }
-                }
-                String s = "s";
-            }
-//            labelRelativeFreq.forEach((key, value) -> {
-//                if (key.equals(labelColYes)) {
-//                    String oppositeLabel = key.replace(labelColYes, labelColNo);
+//        for (ID3ElementV element : ID_3_ELEMENT_VS) {
+//            String weather = element.getWeather();
+//            String temp = element.getTemp();
+//            String hum = element.getHum();
+//            String wind = element.getWind();
+//            String play = element.getPlay();
 //
-//                    double playFrequency = value.get(1); //we saved it as 2nd element
-//                    mapYes.set(mapYes.get() * playFrequency);
-//                    String s = "s";
+//            String weatherLikelihood = weather.concat("|" + play);
+//            String tempLikelihood = temp.concat("|" + play);
+//            String humLikelihood = hum.concat("|" + play);
+//            String windLikelihood = wind.concat("|" + play);
 //
-//                } else if (key.equals(labelColNo)) {
-//                    String oppositeLabel = key.replace(labelColNo, labelColYes);
+//            LinkedList<String> likelihoodOfElements = new LinkedList<>();
+//            likelihoodOfElements.add(weatherLikelihood);
+//            likelihoodOfElements.add(tempLikelihood);
+//            likelihoodOfElements.add(humLikelihood);
+//            likelihoodOfElements.add(windLikelihood);
 //
-//                    double playFrequency = value.get(1); //we saved it as 2nd element
-//                    mapNo.set(mapNo.get() * playFrequency);
-//                    String s = "s";
+//            AtomicReference<Double> mapYes = new AtomicReference<>((double) 1);
+//            AtomicReference<Double> mapNo = new AtomicReference<>((double) 1);
 //
+//
+//            computedSetComb.forEach((key, value) -> {
+//                if (key.equals(weatherLikelihood)) {
+//                    retrieveMapYesAndNo(mapYes, mapNo, key, value, likelihoodOfElements);
 //                }
+//                String s = "s";
+//            });
+//            computedSetComb.forEach((key, value) -> {
+//                if (key.equals(tempLikelihood)) {
+//                    retrieveMapYesAndNo(mapYes, mapNo, key, value, likelihoodOfElements);
+//                }
+//                String s = "s";
+//            });
+//            computedSetComb.forEach((key, value) -> {
+//                if (key.equals(humLikelihood)) {
+//                    retrieveMapYesAndNo(mapYes, mapNo, key, value, likelihoodOfElements);
+//                }
+//                String s = "s";
 //
 //            });
-        }
+//            computedSetComb.forEach((key, value) -> {
+//                if (key.equals(windLikelihood)) {
+//                    retrieveMapYesAndNo(mapYes, mapNo, key, value, likelihoodOfElements);
+//                }
+//                String s = "s";
+//            });
+//
+//            for (Map.Entry<String, LinkedList<Double>> label : labelRelativeFreq.entrySet()) {
+//                String key = label.getKey();
+//                LinkedList<Double> value = label.getValue();
+//
+//                if (key.equals(labelColYes)) {
+//                    multiplyAllColumnsToLabelColumn(mapYes, mapNo, key, value, labelColNo);
+//                } else if (key.equals(labelColNo)) {
+//                    multiplyAllColumnsToLabelColumn(mapNo, mapYes, key, value, labelColYes);
+//                }
+//
+//                DecimalFormat newFormat = new DecimalFormat("#.####");
+//                double maxHypothesis = Math.max(mapYes.get(), mapNo.get());
+//                if (maxHypothesis == mapYes.get()) {
+//                    double twoDecimal = Double.parseDouble(newFormat.format(mapYes.get()));
+//
+//                    if (!mapHypothesisResults.contains(twoDecimal)) {
+//                        mapHypothesisResults.add(twoDecimal);
+//                        String consoleResult = twoDecimal + "|" + labelColYes;
+//                        mapHypothesisConsoleResults.add(consoleResult);
+//                    }
+//                } else {
+//                    double twoDecimal = Double.parseDouble(newFormat.format(mapNo.get()));
+//
+//                    if (!mapHypothesisResults.contains(twoDecimal)) {
+//                        mapHypothesisResults.add(twoDecimal);
+//                        String consoleResult = twoDecimal + "|" + labelColNo;
+//                        mapHypothesisConsoleResults.add(consoleResult);
+//                    }
+//                }
+//                String s = "s";
+//            }
+////            labelRelativeFreq.forEach((key, value) -> {
+////                if (key.equals(labelColYes)) {
+////                    String oppositeLabel = key.replace(labelColYes, labelColNo);
+////
+////                    double playFrequency = value.get(1); //we saved it as 2nd element
+////                    mapYes.set(mapYes.get() * playFrequency);
+////                    String s = "s";
+////
+////                } else if (key.equals(labelColNo)) {
+////                    String oppositeLabel = key.replace(labelColNo, labelColYes);
+////
+////                    double playFrequency = value.get(1); //we saved it as 2nd element
+////                    mapNo.set(mapNo.get() * playFrequency);
+////                    String s = "s";
+////
+////                }
+////
+////            });
+//        }
 
     }
 
@@ -328,63 +311,98 @@ public class Lab3 {
 
     private static void getNrOfElementsForEachValuePerColumn() {
         AtomicInteger count = new AtomicInteger(1);
+        AtomicInteger currentColumnCount = new AtomicInteger(1);
 
         LinkedList<String> weatherCount = new LinkedList<>();
 
+        LinkedList<String> columnNames = id3Elements.get(0).getId3FedElements();
+        for (int i = 0; i < columnNames.size(); i++) {
+            String column = columnNames.get(i);
+//            columnList.computeIfAbsent(i, k -> new LinkedList<>()).add(column);
+            columnList.putIfAbsent(i+1, column);
+            String s = "s";
+
+        }
+
+        String s = "s";
+
+    /*    LinkedList<LinkedList<String>> list = new LinkedList<>(columnList.values());
+        for (String s : list) {
+            System.out.println(s);
+        }
         for (String weather : firstColumn) {
-            retrieveNrOfDistinctElementsPerColumn(count, weatherCount, weather, col1Name);
+            if (!weatherCount.contains(weather)) {
+                if (!weather.equals(testableCol)) {
+                    weatherCount.add(weather);
+                    countElements.put(weather, count.get());
+                }
+            } else if (weatherCount.contains(weather)) {
+                if (!countElements.containsKey(weather)) {
+                    countElements.put(weather, count.getAndIncrement());
+                } else {
+                    count = new AtomicInteger(countElements.get(weather));
+                    count.getAndIncrement();
+                    countElements.put(weather, count.get());
+                }
+            }
         }
 
         LinkedHashMap<String, Integer> localElems = new LinkedHashMap<>(countElements);
         volleyBallMatchMap.put(col1Name, localElems);
         countElements.clear();
         count = new AtomicInteger(1);
+        String s = "s";
+*/
 
-        for (String temp : secondColumn) {
-            retrieveNrOfDistinctElementsPerColumn(count, weatherCount, temp, col2Name);
-        }
-
-        localElems = new LinkedHashMap<>(countElements);
-        volleyBallMatchMap.put(col2Name, localElems);
-        countElements.clear();
-        count = new AtomicInteger(1);
-
-        for (String hum : thirdColumn) {
-            retrieveNrOfDistinctElementsPerColumn(count, weatherCount, hum, col3Name);
-        }
-
-        localElems = new LinkedHashMap<>(countElements);
-        volleyBallMatchMap.put(col3Name, localElems);
-        countElements.clear();
-        count = new AtomicInteger(1);
-
-
-        for (String wind : forthColumn) {
-            retrieveNrOfDistinctElementsPerColumn(count, weatherCount, wind, col4Name);
-        }
-
-        localElems = new LinkedHashMap<>(countElements);
-        volleyBallMatchMap.put(col4Name, localElems);
-        countElements.clear();
-        count = new AtomicInteger(1);
-
-
-        for (String play : labelColumn) {
-            retrieveNrOfDistinctElementsPerColumn(count, weatherCount, play, labelColName);
-        }
-
-        localElems = new LinkedHashMap<>(countElements);
-        volleyBallMatchMap.put(labelColName, localElems);
-        deriveLabelColumnProbabilities(localElems);
-        countElements.clear();
+//        for (String weather : firstColumn) {
+//            retrieveNrOfDistinctElementsPerColumn(count, weatherCount, weather, col1Name);
+//        }
+//
+//        LinkedHashMap<String, Integer> localElems = new LinkedHashMap<>(countElements);
+//        volleyBallMatchMap.put(col1Name, localElems);
+//        countElements.clear();
+//        count = new AtomicInteger(1);
+//
+//        for (String temp : secondColumn) {
+//            retrieveNrOfDistinctElementsPerColumn(count, weatherCount, temp, col2Name);
+//        }
+//
+//        localElems = new LinkedHashMap<>(countElements);
+//        volleyBallMatchMap.put(col2Name, localElems);
+//        countElements.clear();
+//        count = new AtomicInteger(1);
+//
+//        for (String hum : thirdColumn) {
+//            retrieveNrOfDistinctElementsPerColumn(count, weatherCount, hum, col3Name);
+//        }
+//
+//        localElems = new LinkedHashMap<>(countElements);
+//        volleyBallMatchMap.put(col3Name, localElems);
+//        countElements.clear();
+//        count = new AtomicInteger(1);
+//
+//
+//        for (String wind : forthColumn) {
+//            retrieveNrOfDistinctElementsPerColumn(count, weatherCount, wind, col4Name);
+//        }
+//
+//        localElems = new LinkedHashMap<>(countElements);
+//        volleyBallMatchMap.put(col4Name, localElems);
+//        countElements.clear();
+//        count = new AtomicInteger(1);
+//
+//
+//        for (String play : labelColumn) {
+//            retrieveNrOfDistinctElementsPerColumn(count, weatherCount, play, labelColName);
+//        }
+//
+//        localElems = new LinkedHashMap<>(countElements);
+//        volleyBallMatchMap.put(labelColName, localElems);
+//        deriveLabelColumnProbabilities(localElems);
+//        countElements.clear();
 
     }
 
-    private static double getPriorProbabilityByRelativeFrequency(double nrToTest) {
-        //Subtracting the first line (because it contains the name of the columns)
-        double nrOfElementsInTotal = lineToVbElements.size() - 1;
-        return nrToTest / nrOfElementsInTotal;
-    }
 
     private static double getLikelihoodByPlayCount(double nrToTest, double play) {
         return nrToTest / play;
@@ -447,6 +465,12 @@ public class Lab3 {
         return Double.parseDouble(knowElements.getLast());
     }
 
+
+    private static double getPriorProbabilityByRelativeFrequency(double nrToTest) {
+        //Subtracting the first line (because it contains the name of the columns)
+        double nrOfElementsInTotal = id3Elements.size() - 1;
+        return nrToTest / nrOfElementsInTotal;
+    }
     public static void getID3() throws FileNotFoundException {
         Scanner interactive = new Scanner(new File(Constant.id3));
 

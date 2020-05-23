@@ -17,16 +17,17 @@ public class RegexOperator {
     public static final String num_trees = "num_trees";
     public static final String feature_ratio = "feature_ratio";
     public static final String example_ratio = "example_ratio";
-
-    public static final String col1Name = "weather";
-    public static final String col2Name = "temperature";
-    public static final String col3Name = "humidity";
-    public static final String col4Name = "wind";
-    public static final String labelColName = "play";
+//
+//    public static final String col1Name = "weather";
+//    public static final String col2Name = "temperature";
+//    public static final String col3Name = "humidity";
+//    public static final String col4Name = "wind";
+//    public static final String labelColName = "play";
 
     public static final String labelColYes = "yes";
     public static final String labelColNo = "no";
-
+    public static final String labelColTrue = "True";
+    public static final String labelColFalse = "False";
 
 
 }

@@ -1,17 +1,29 @@
 package ui.utils;
 
-public class ID3Element {
-    private String weather, temp, hum, wind, play;
+import java.util.LinkedList;
 
-    public ID3Element() {
+public class ID3ElementV {
+    private String weather, temp, hum, wind, play;
+    private LinkedList<String> id3FedElements;
+
+    public ID3ElementV() {
     }
 
-    public ID3Element(String weather, String temp, String hum, String wind, String play) {
+    public ID3ElementV(String weather, String temp, String hum, String wind, String play) {
         this.weather = weather;
         this.temp = temp;
         this.hum = hum;
         this.wind = wind;
         this.play = play;
+    }
+
+    public ID3ElementV(String play) {
+        this.play = play;
+    }
+
+    public ID3ElementV(LinkedList<String> id3FedElements) {
+        this.id3FedElements = id3FedElements;
+
     }
 
     public String getWeather() {
@@ -52,5 +64,13 @@ public class ID3Element {
 
     public void setPlay(String play) {
         this.play = play;
+    }
+
+    public LinkedList<String> getId3FedElements() {
+        return id3FedElements;
+    }
+
+    public void setId3FedElements(LinkedList<String> id3FedElements) {
+        this.id3FedElements = id3FedElements;
     }
 }
