@@ -6,10 +6,8 @@ import ui.utils.ID3Element;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.Scanner;
+import java.text.DecimalFormat;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -25,7 +23,7 @@ public class Lab3 {
     private static final LinkedList<ID3Element> id3elements = new LinkedList<>();
 
     private static LinkedHashMap<String, Integer> countElements = new LinkedHashMap<>();
-    private static String currentElementsFromColumn;
+    private static final LinkedList<String> getID3 = new LinkedList<>();
     private static String modeHyper;
     private static String modelHyper;
     private static double depthHyper;
@@ -40,15 +38,15 @@ public class Lab3 {
     private static final LinkedHashMap<String, Double> countPerSetComb = new LinkedHashMap<>();
     private static final LinkedHashMap<String, Double> likelihoodPerSetComb = new LinkedHashMap<>();
     private static LinkedList<Double> valueWithProbability;
-
+    private static final LinkedList<String> mapHypothesisConsoleResults = new LinkedList<>();
+    private static final LinkedList<Double> mapHypothesisResults = new LinkedList<>();
 
     public static void main(String[] args) throws FileNotFoundException {
+        getID3();
 
         setColumnPosition();
 
-
         getVolleyball();
-        getID3();
     }
 
     public static void setColumnPosition() {
@@ -109,6 +107,41 @@ public class Lab3 {
         getNrByLabelCol();
 
         for (ID3Element element : id3elements) {
+            String play = element.getPlay();
+
+            String weatherLikelihood = element.getWeather().concat("|" + play);
+            String tempLikelihood = element.getTemp().concat("|" + play);
+            String humLikelihood = element.getHum().concat("|" + play);
+            String windLikelihood = element.getWind().concat("|" + play);
+
+            getPlayCountPerSetCombination(weatherLikelihood);
+
+            getPlayCountPerSetCombination(tempLikelihood);
+
+            getPlayCountPerSetCombination(humLikelihood);
+
+            getPlayCountPerSetCombination(windLikelihood);
+
+        }
+
+        retrieveLikelihoodOfElements();
+
+        computeMapHypothesis();
+
+        StringBuilder maxOutput = new StringBuilder();
+        int count = 0;
+        for (String maxHypo : mapHypothesisConsoleResults) {
+            String[] label = maxHypo.split("\\|");
+            LinkedList<String> arr = new LinkedList<>(Arrays.asList(label));
+            maxOutput.append(arr.getLast()).append(" ");
+            count++;
+        }
+        System.out.println(maxOutput);
+        String s = "s";
+    }
+
+    private static void computeMapHypothesis() {
+        for (ID3Element element : id3elements) {
             String weather = element.getWeather();
             String temp = element.getTemp();
             String hum = element.getHum();
@@ -120,32 +153,142 @@ public class Lab3 {
             String humLikelihood = hum.concat("|" + play);
             String windLikelihood = wind.concat("|" + play);
 
-            getPlayCountPerSetCombination(weatherLikelihood);
+            LinkedList<String> likelihoodOfElements = new LinkedList<>();
+            likelihoodOfElements.add(weatherLikelihood);
+            likelihoodOfElements.add(tempLikelihood);
+            likelihoodOfElements.add(humLikelihood);
+            likelihoodOfElements.add(windLikelihood);
 
-            getPlayCountPerSetCombination(tempLikelihood);
+            AtomicReference<Double> mapYes = new AtomicReference<>((double) 1);
+            AtomicReference<Double> mapNo = new AtomicReference<>((double) 1);
 
-            getPlayCountPerSetCombination(humLikelihood);
 
-            getPlayCountPerSetCombination(windLikelihood);
+            likelihoodPerSetComb.forEach((key, value) -> {
+                if (key.equals(weatherLikelihood)) {
+                    retrieveMapYesAndNo(mapYes, mapNo, key, value, likelihoodOfElements);
+                }
+                String s = "s";
+            });
+            likelihoodPerSetComb.forEach((key, value) -> {
+                if (key.equals(tempLikelihood)) {
+                    retrieveMapYesAndNo(mapYes, mapNo, key, value, likelihoodOfElements);
+                }
+                String s = "s";
+            });
+            likelihoodPerSetComb.forEach((key, value) -> {
+                if (key.equals(humLikelihood)) {
+                    retrieveMapYesAndNo(mapYes, mapNo, key, value, likelihoodOfElements);
+                }
+                String s = "s";
 
-            String s = "s";
+            });
+            likelihoodPerSetComb.forEach((key, value) -> {
+                if (key.equals(windLikelihood)) {
+                    retrieveMapYesAndNo(mapYes, mapNo, key, value, likelihoodOfElements);
+                }
+                String s = "s";
+            });
 
+            for (Map.Entry<String, LinkedList<Double>> label : labelRelativeFreq.entrySet()) {
+                String key = label.getKey();
+                LinkedList<Double> value = label.getValue();
+
+                if (key.equals(labelColYes)) {
+                    multiplyAllColumnsToLabelColumn(mapYes, mapNo, key, value, labelColNo);
+                } else if (key.equals(labelColNo)) {
+                    multiplyAllColumnsToLabelColumn(mapNo, mapYes, key, value, labelColYes);
+                }
+
+                DecimalFormat newFormat = new DecimalFormat("#.####");
+                double maxHypothesis = Math.max(mapYes.get(), mapNo.get());
+                if (maxHypothesis == mapYes.get()) {
+                    double twoDecimal = Double.parseDouble(newFormat.format(mapYes.get()));
+
+                    if (!mapHypothesisResults.contains(twoDecimal)) {
+                        mapHypothesisResults.add(twoDecimal);
+                        String consoleResult = twoDecimal + "|" + labelColYes;
+                        mapHypothesisConsoleResults.add(consoleResult);
+                    }
+                } else {
+                    double twoDecimal = Double.parseDouble(newFormat.format(mapNo.get()));
+
+                    if (!mapHypothesisResults.contains(twoDecimal)) {
+                        mapHypothesisResults.add(twoDecimal);
+                        String consoleResult = twoDecimal + "|" + labelColNo;
+                        mapHypothesisConsoleResults.add(consoleResult);
+                    }
+                }
+                String s = "s";
+            }
+//            labelRelativeFreq.forEach((key, value) -> {
+//                if (key.equals(labelColYes)) {
+//                    String oppositeLabel = key.replace(labelColYes, labelColNo);
+//
+//                    double playFrequency = value.get(1); //we saved it as 2nd element
+//                    mapYes.set(mapYes.get() * playFrequency);
+//                    String s = "s";
+//
+//                } else if (key.equals(labelColNo)) {
+//                    String oppositeLabel = key.replace(labelColNo, labelColYes);
+//
+//                    double playFrequency = value.get(1); //we saved it as 2nd element
+//                    mapNo.set(mapNo.get() * playFrequency);
+//                    String s = "s";
+//
+//                }
+//
+//            });
         }
 
-        countPerSetComb.forEach((key, value) -> {
-            double likelihoodOfLabel = 0;
-            if (key.contains(labelColYes)) {
-                likelihoodOfLabel = nrOfLabelYes.get();
-            } else if (key.contains(labelColNo)) {
-                likelihoodOfLabel = nrOfLabelNo.get();
-            }
-            double likelihoodOfSubset = getLikelihoodByPlayCount(value, likelihoodOfLabel);
-            likelihoodPerSetComb.put(key, likelihoodOfSubset);
+    }
 
-        });
+    private static void multiplyAllColumnsToLabelColumn(AtomicReference<Double> labelMap, AtomicReference<Double> oppositeLabelMap,
+                                                        String key, LinkedList<Double> value, String labelColNo) {
+        double playFrequency = value.get(1); //we saved it as 2nd element
+        labelMap.set(labelMap.get() * playFrequency);
 
+        //get oppositeLike
+        String oppositeKey = key.replace(key, labelColNo);
+        double likelihoodOfLabel = getLikelihoodByLabel(labelRelativeFreq, oppositeKey);
+        oppositeLabelMap.set(oppositeLabelMap.get() * likelihoodOfLabel);
+        String s = "s";
+    }
+
+    public static double getLikelihoodByLabel(LinkedHashMap<String, LinkedList<Double>> labelRelativeFreq, String label) {
+        LinkedList<Map.Entry<String, LinkedList<Double>>> entryList = new LinkedList<>(labelRelativeFreq.entrySet());
+        int indexOfLabel = new ArrayList<>(labelRelativeFreq.keySet()).indexOf(label);
+
+        String key = entryList.get(indexOfLabel).getKey();
+        LinkedList<Double> value = entryList.get(indexOfLabel).getValue();
 
         String s = "s";
+        return value.get(value.size() - 1);
+    }
+
+    private static void retrieveMapYesAndNo(AtomicReference<Double> mapYes, AtomicReference<Double> mapNo,
+                                            String key, Double value, LinkedList<String> likelihoodOfElements) {
+
+        if (key.contains(labelColYes)) {
+            mapYes.set(mapYes.get() * value);
+            retrieveDataByOppositeMapType(mapNo, key, value, labelColYes, labelColNo);
+        } else if (key.contains(labelColNo)) {
+            mapNo.set(mapNo.get() * value);
+            retrieveDataByOppositeMapType(mapYes, key, value, labelColNo, labelColYes);
+
+        }
+    }
+
+    private static void retrieveDataByOppositeMapType(AtomicReference<Double> currentMap, String key, Double value,
+                                                      String currentLabel, String replaceableLabel) {
+        String oppositeLabel = key.replace(currentLabel, replaceableLabel);
+        if (likelihoodPerSetComb.containsKey(oppositeLabel)) {
+            double getOppositeValue = likelihoodPerSetComb.get(oppositeLabel);
+            currentMap.set(currentMap.get() * getOppositeValue);
+            String s = "s";
+        } else if (!likelihoodPerSetComb.containsKey(oppositeLabel)) {
+            currentMap.set(currentMap.get() * value);
+            String s = "s";
+        }
     }
 
     private static void getPlayCountPerSetCombination(String likelihood) {
@@ -166,6 +309,20 @@ public class Lab3 {
                 double totalY = value.get(0); //we saved it as 1st element
                 nrOfLabelNo.set(totalY);
             }
+        });
+    }
+
+    private static void retrieveLikelihoodOfElements() {
+        countPerSetComb.forEach((key, value) -> {
+            double likelihoodOfLabel = 0;
+            if (key.contains(labelColYes)) {
+                likelihoodOfLabel = nrOfLabelYes.get();
+            } else if (key.contains(labelColNo)) {
+                likelihoodOfLabel = nrOfLabelNo.get();
+            }
+            double likelihoodOfSubset = getLikelihoodByPlayCount(value, likelihoodOfLabel);
+            likelihoodPerSetComb.put(key, likelihoodOfSubset);
+
         });
     }
 
@@ -292,7 +449,6 @@ public class Lab3 {
 
     public static void getID3() throws FileNotFoundException {
         Scanner interactive = new Scanner(new File(Constant.id3));
-        LinkedList<String> getID3 = new LinkedList<>();
 
         while (interactive.hasNext()) {
             String knowledge = interactive.nextLine();
@@ -324,9 +480,7 @@ public class Lab3 {
             getID3.add(knowledge);
         }
 
-
         String s = "s";
-
 
     }
 
