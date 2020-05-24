@@ -13,7 +13,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static ui.utils.Lab3Utils.getGetID3;
 import static ui.utils.Lab3Utils.log2;
-import static ui.utils.RegexOperator.*;
+import static ui.utils.RegexOperator.labelColNo;
+import static ui.utils.RegexOperator.labelColYes;
 
 
 public class Lab3 {
@@ -38,8 +39,9 @@ public class Lab3 {
 
     private static final LinkedHashMap<String, LinkedList<Double>> labelRelativeFreq = new LinkedHashMap<>();
     private static final LinkedHashMap<String, Double> countPerSetComb = new LinkedHashMap<>();
+    private static LinkedHashMap<String, Double> fullCountPerSetComb = new LinkedHashMap<>();
     //includes values from normalCount-but with "nonexistent-0"
-    private static final LinkedHashMap<String, Double> fullCountPerSetComb = new LinkedHashMap<>();
+    private static final LinkedHashMap<String, Double> getNrOfCountPerSetComb = new LinkedHashMap<>();
     private static final LinkedHashMap<String, Double> likelihoodPerSetComb = new LinkedHashMap<>();
     private static LinkedList<Double> valueWithProbability;
     private static final LinkedList<String> mapHypothesisConsoleResults = new LinkedList<>();
@@ -49,8 +51,8 @@ public class Lab3 {
     public static void main(String[] args) throws FileNotFoundException {
         getID3Data = getGetID3();
 
-        retrieveFileData(new File(Constant.volleyball));
-//        retrieveFileData(new File(Constant.titanic_train_categorical));
+//        retrieveFileData(new File(Constant.volleyball));
+        retrieveFileData(new File(Constant.titanic_train_categorical));
 
         getNrOfElementsForEachValuePerColumn();
 
@@ -73,6 +75,35 @@ public class Lab3 {
 
         setupFullCountPerSetComb();
 
+        set0ProbabilityForEmptySetElements();
+    }
+
+    private static void set0ProbabilityForEmptySetElements() {
+        fullCountPerSetComb = countPerSetComb;
+
+        int fullSize = fullCountPerSetComb.size();
+
+        //maybe do a break each time it finds one (TBDetermined)
+        getNrOfCountPerSetComb.forEach((existingKey, existingValue) -> {
+            if (existingValue == 1) {
+                for (Map.Entry<String, Double> entry : fullCountPerSetComb.entrySet()) {
+                    String fullCKey = entry.getKey();
+                    String[] entryKeySet = fullCKey.split("\\|");
+                    String label = entryKeySet[1];
+                    String endResult;
+                    if (label.equals(labelColYes)) {
+                        endResult = fullCKey.replace("|"+label, "|"+labelColNo);
+                    } else {
+                        endResult = fullCKey.replace("|"+label, "|"+labelColYes);
+                    }
+                    fullCountPerSetComb.putIfAbsent(endResult, 0.0);
+                    int sizeToTest = fullCountPerSetComb.size();
+                    if (fullSize < sizeToTest) {
+                        break;
+                    }
+                }
+            }
+        });
     }
 
     private static void setupFullCountPerSetComb() {
@@ -87,7 +118,7 @@ public class Lab3 {
                     String labelNameOfCountSet = entryKeySet[1];
 
                     if (entryKey.equals(columnNameOfCountSet)) {
-                        fullCountPerSetComb.put(columnNameOfCountSet,(double)  count.getAndIncrement());
+                        getNrOfCountPerSetComb.put(columnNameOfCountSet, (double) count.getAndIncrement());
                     }
                 });
             }
@@ -192,7 +223,6 @@ public class Lab3 {
             }
             double likelihoodOfSubset = getLikelihoodByPlayCount(value, likelihoodOfLabel);
             likelihoodPerSetComb.put(key, likelihoodOfSubset);
-
         });
     }
 
