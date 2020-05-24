@@ -53,7 +53,6 @@ public class Lab3Utils {
 
     }
 
-
     private static String retrieveHyperParam(String knowledge) {
         String[] elems = knowledge.split("=");
         LinkedList<String> knowElements = new LinkedList<>(Arrays.asList(elems));
@@ -72,6 +71,11 @@ public class Lab3Utils {
     }
 
     public static LinkedList<String> getGetID3() {
+        try {
+            getID3();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
         return getID3;
     }
 

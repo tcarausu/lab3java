@@ -219,5 +219,14 @@ public class BayesRelation {
 //
 //        }
 //    }
+public void usefulThings() {
+//        int indexOfKey = new LinkedList<>(countPerSetComb.keySet()).indexOf(existingKey);
+//        int lastPos = new LinkedList<>(countPerSetComb.keySet()).indexOf(lastCountPerSetCombKeyElement);
+//        double countPerKey = fullCountPerSetComb.get(entryKey);
+//
+//        LinkedList<String> countPerSetCombKeySet = new LinkedList<>(countPerSetComb.keySet());
+//        String lastCountPerSetCombKeyElement = countPerSetCombKeySet.getLast();
+
+}
 
 }

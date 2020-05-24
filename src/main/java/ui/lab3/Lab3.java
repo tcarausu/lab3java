@@ -18,41 +18,37 @@ import static ui.utils.RegexOperator.labelColYes;
 
 
 public class Lab3 {
-    //    private static final LinkedHashMap<String, LinkedList<String>> lineToVbElements = new LinkedHashMap<>();
-//    private static LinkedList<String> vElements, firstColumn, secondColumn, thirdColumn, forthColumn, labelColumn;
+    private static final DecimalFormat newFormat = new DecimalFormat("#.###");
+    private static LinkedList<String> getID3Data = new LinkedList<>();
 
     private static final LinkedHashMap<Integer, LinkedList<String>> columnListWithElements = new LinkedHashMap<>();
     private static final LinkedHashMap<Integer, String> featureAndLabelList = new LinkedHashMap<>();
-    private static final LinkedHashMap<String, LinkedList<String>> columnWithVariables = new LinkedHashMap<>();
-
-    private static final LinkedHashMap<String, LinkedHashMap<String, Integer>> fileDatasetMap = new LinkedHashMap<>();
-    private static final LinkedList<ID3Element> id3Elements = new LinkedList<>();
-    private static DecimalFormat newFormat = new DecimalFormat("#.###");
-    private static double labelEntropy;
-    private static double currentLabelEntropy;
+    private static final LinkedHashMap<String, LinkedList<String>> columnWithAllVariables = new LinkedHashMap<>();
+    private static final LinkedHashMap<String, LinkedHashMap<String, Integer>> columnWithUniqueElements = new LinkedHashMap<>();
 
     private static final LinkedHashMap<String, Integer> countElements = new LinkedHashMap<>();
-    private static LinkedList<String> getID3Data = new LinkedList<>();
-
-    private static final AtomicReference<Double> nrOfLabelYes = new AtomicReference<>((double) 0);
-    private static final AtomicReference<Double> nrOfLabelNo = new AtomicReference<>((double) 0);
-
-    private static final LinkedHashMap<String, LinkedList<Double>> labelRelativeFreq = new LinkedHashMap<>();
     private static final LinkedHashMap<String, Double> countPerSetComb = new LinkedHashMap<>();
-    private static LinkedHashMap<String, Double> fullCountPerSetComb = new LinkedHashMap<>();
-    //includes values from normalCount-but with "nonexistent-0"
     private static final LinkedHashMap<String, Double> getNrOfCountPerSetComb = new LinkedHashMap<>();
+    private static LinkedHashMap<String, Double> fullCountPerSetComb = new LinkedHashMap<>();
     private static final LinkedHashMap<String, Double> likelihoodPerSetComb = new LinkedHashMap<>();
     private static LinkedList<Double> valueWithProbability;
-    private static final LinkedList<String> mapHypothesisConsoleResults = new LinkedList<>();
-    private static final LinkedList<Double> mapHypothesisResults = new LinkedList<>();
 
+    private static LinkedHashMap<String, LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>>> tableDataSet = new LinkedHashMap<>();
+    private static LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>> columnWithCurrentColEntropy = new LinkedHashMap<>();
+    private static LinkedHashMap<String, LinkedList<Double>> valueWithEntropy = new LinkedHashMap<>();
+
+    private static final LinkedList<ID3Element> id3Elements = new LinkedList<>();
+    private static double labelEntropy;
+    private static double currentColEntropy;
+    private static final AtomicReference<Double> nrOfLabelYes = new AtomicReference<>((double) 0);
+    private static final AtomicReference<Double> nrOfLabelNo = new AtomicReference<>((double) 0);
+    private static final LinkedHashMap<String, LinkedList<Double>> labelRelativeFreq = new LinkedHashMap<>();
 
     public static void main(String[] args) throws FileNotFoundException {
         getID3Data = getGetID3();
 
-//        retrieveFileData(new File(Constant.volleyball));
-        retrieveFileData(new File(Constant.titanic_train_categorical));
+        retrieveFileData(new File(Constant.volleyball));
+//        retrieveFileData(new File(Constant.titanic_train_categorical));
 
         getNrOfElementsForEachValuePerColumn();
 
@@ -65,7 +61,6 @@ public class Lab3 {
                 String currentCol = element.getId3FedElements().get(j);
                 String currentColLikelihood = currentCol.concat("|" + labelCol);
                 getPlayCountPerSetCombination(currentColLikelihood);
-
             }
         }
 
@@ -76,53 +71,62 @@ public class Lab3 {
         setupFullCountPerSetComb();
 
         set0ProbabilityForEmptySetElements();
+
+        draftDatasetTable();
     }
 
-    private static void set0ProbabilityForEmptySetElements() {
-        fullCountPerSetComb = countPerSetComb;
+    private static void draftDatasetTable() {
+        columnWithCurrentColEntropy = new LinkedHashMap<>();
+        LinkedList<LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>>> listOfMaps = new LinkedList<>();
+        valueWithEntropy = new LinkedHashMap<>();
 
-        int fullSize = fullCountPerSetComb.size();
+        columnWithUniqueElements.forEach((colUnK, colUnV) -> {
+            colUnV.forEach((currentCol, nrOfThem) -> {
+                fullCountPerSetComb.forEach((existingKey, existingValue) -> {
+                    String[] keyParts = existingKey.split("\\|");
+                    String colName = keyParts[0];
+                    String label = keyParts[1];
+                    if (colName.equals(currentCol)) {
+                        fullCountPerSetComb.forEach((findSameKey, findDiffValue) -> {
+                            String[] sameKeyParts = findSameKey.split("\\|");
+                            String sameColName = sameKeyParts[0];
+                            String diffLabel = sameKeyParts[1];
+                            if (sameColName.equals(colName)) {
+                                if (label.equals(diffLabel)) {
+                                    valueWithEntropy.computeIfAbsent(diffLabel, k -> new LinkedList<>()).add(existingValue);
+                                } else {
+                                    valueWithEntropy.computeIfAbsent(diffLabel, k -> new LinkedList<>()).add(findDiffValue);
+                                }
+                            }
+                        });
 
-        //maybe do a break each time it finds one (TBDetermined)
-        getNrOfCountPerSetComb.forEach((existingKey, existingValue) -> {
-            if (existingValue == 1) {
-                for (Map.Entry<String, Double> entry : fullCountPerSetComb.entrySet()) {
-                    String fullCKey = entry.getKey();
-                    String[] entryKeySet = fullCKey.split("\\|");
-                    String label = entryKeySet[1];
-                    String endResult;
-                    if (label.equals(labelColYes)) {
-                        endResult = fullCKey.replace("|"+label, "|"+labelColNo);
-                    } else {
-                        endResult = fullCKey.replace("|"+label, "|"+labelColYes);
-                    }
-                    fullCountPerSetComb.putIfAbsent(endResult, 0.0);
-                    int sizeToTest = fullCountPerSetComb.size();
-                    if (fullSize < sizeToTest) {
-                        break;
-                    }
-                }
-            }
-        });
-    }
+                        Iterator<Map.Entry<String, LinkedList<Double>>> iterator = valueWithEntropy.entrySet().iterator();
+                        double firstValueForEd = iterator.next().getValue().getFirst();
+                        Map.Entry<String, LinkedList<Double>> lastElement = null;
+                        while (iterator.hasNext()) {
+                            lastElement = iterator.next();
+                        }
+                        double secondValueForEd = Objects.requireNonNull(lastElement).getValue().getFirst();
 
-    private static void setupFullCountPerSetComb() {
-        fileDatasetMap.forEach((fileKey, fileValue) -> {
-            for (Map.Entry<String, Integer> entry : fileValue.entrySet()) {
-                String entryKey = entry.getKey();
+                        currentColEntropy = getLabelEntropy(firstValueForEd, secondValueForEd);
+                        valueWithEntropy.computeIfAbsent(labelColNo, k -> new LinkedList<>()).add(currentColEntropy);
 
-                AtomicInteger count = new AtomicInteger(1);
-                countPerSetComb.forEach((existingKey, existingValue) -> {
-                    String[] entryKeySet = existingKey.split("\\|");
-                    String columnNameOfCountSet = entryKeySet[0];
-                    String labelNameOfCountSet = entryKeySet[1];
+                        currentColEntropy = getLabelEntropy(secondValueForEd, firstValueForEd);
+                        valueWithEntropy.computeIfAbsent(labelColYes, k -> new LinkedList<>()).add(currentColEntropy);
 
-                    if (entryKey.equals(columnNameOfCountSet)) {
-                        getNrOfCountPerSetComb.put(columnNameOfCountSet, (double) count.getAndIncrement());
+                        columnWithCurrentColEntropy.putIfAbsent(currentCol, valueWithEntropy);
+
+                        if (!listOfMaps.contains(columnWithCurrentColEntropy)) {
+                            listOfMaps.add(columnWithCurrentColEntropy);
+                        }
+                        valueWithEntropy = new LinkedHashMap<>();
+                        columnWithCurrentColEntropy = new LinkedHashMap<>();
                     }
                 });
-            }
+            });
         });
+
+        //cold is 0.811 not 0.818
     }
 
 
@@ -141,15 +145,13 @@ public class Lab3 {
 
     private static void getNrOfElementsForEachValuePerColumn() {
         final AtomicInteger[] count = {new AtomicInteger(1)};
-        AtomicInteger currentColumnCount = new AtomicInteger(1);
-
         LinkedList<String> columnListToTest = new LinkedList<>();
 
         LinkedList<String> columnNames = id3Elements.get(0).getId3FedElements();
         for (int i = 0; i < columnNames.size(); i++) {
             String column = columnNames.get(i);
             featureAndLabelList.putIfAbsent(i, column);
-            columnWithVariables.putIfAbsent(column, new LinkedList<>());
+            columnWithAllVariables.putIfAbsent(column, new LinkedList<>());
         }
 
         for (int i = 1; i < id3Elements.size(); i++) {
@@ -158,7 +160,6 @@ public class Lab3 {
             for (int j = 0; j < featureAndLabelList.size(); j++) {
                 String column = values.get(j);
                 columnListWithElements.computeIfAbsent(i - 1, k -> new LinkedList<>()).add(column);
-
             }
         }
 
@@ -168,20 +169,19 @@ public class Lab3 {
 
             for (LinkedList<String> currentColumnValue : columnListWithElements.values()) {
                 String currentValue = currentColumnValue.get(currentColumnIndex);
-                columnWithVariables.computeIfAbsent(featureOrLabel, k -> new LinkedList<>()).add(currentValue);
+                columnWithAllVariables.computeIfAbsent(featureOrLabel, k -> new LinkedList<>()).add(currentValue);
             }
-
         }
 
-        LinkedList<String> arrK = new LinkedList<>(Arrays.asList(columnWithVariables.keySet().toArray(new String[0])));
+        LinkedList<String> arrK = new LinkedList<>(Arrays.asList(columnWithAllVariables.keySet().toArray(new String[0])));
 
-        columnWithVariables.forEach((fOrLKey, fOrLValue) -> {
+        columnWithAllVariables.forEach((fOrLKey, fOrLValue) -> {
             for (String featureOrLabel : fOrLValue) {
                 retrieveNrOfDistinctElementsPerColumn(count[0], columnListToTest, featureOrLabel, fOrLKey);
             }
 
             LinkedHashMap<String, Integer> localElements = new LinkedHashMap<>(countElements);
-            fileDatasetMap.put(fOrLKey, localElements);
+            columnWithUniqueElements.put(fOrLKey, localElements);
             count[0] = new AtomicInteger(1);
             if (fOrLKey.equals(arrK.get(arrK.size() - 1))) {
                 deriveLabelColumnProbabilities(localElements);
@@ -190,7 +190,6 @@ public class Lab3 {
         });
 
     }
-
 
     private static void getPlayCountPerSetCombination(String likelihood) {
         if (!countPerSetComb.containsKey(likelihood)) {
@@ -225,7 +224,6 @@ public class Lab3 {
             likelihoodPerSetComb.put(key, likelihoodOfSubset);
         });
     }
-
 
     private static double getLikelihoodByPlayCount(double nrToTest, double play) {
         return nrToTest / play;
@@ -283,18 +281,59 @@ public class Lab3 {
     }
 
     private static double getLabelEntropy(double positiveColValue, double negativeColValue) {
-        double total = positiveColValue + negativeColValue;
-        double entropy = entropyOfLabelDataset(positiveColValue, negativeColValue, total);
-        return Double.parseDouble(newFormat.format(entropy));
-    }
-
-    public void usefulThings() {
-//        int indexOfKey = new LinkedList<>(countPerSetComb.keySet()).indexOf(existingKey);
-//        int lastPos = new LinkedList<>(countPerSetComb.keySet()).indexOf(lastCountPerSetCombKeyElement);
-//        double countPerKey = fullCountPerSetComb.get(entryKey);
-//
-//        LinkedList<String> countPerSetCombKeySet = new LinkedList<>(countPerSetComb.keySet());
-//        String lastCountPerSetCombKeyElement = countPerSetCombKeySet.getLast();
+        if (positiveColValue != 0 && negativeColValue != 0) {
+            double total = positiveColValue + negativeColValue;
+            double entropy = entropyOfLabelDataset(positiveColValue, negativeColValue, total);
+            return Double.parseDouble(newFormat.format(entropy));
+        } else {
+            return 0;
+        }
 
     }
+
+    private static void setupFullCountPerSetComb() {
+        columnWithUniqueElements.forEach((fileKey, fileValue) -> {
+            for (Map.Entry<String, Integer> entry : fileValue.entrySet()) {
+                String entryKey = entry.getKey();
+
+                AtomicInteger count = new AtomicInteger(1);
+                countPerSetComb.forEach((existingKey, existingValue) -> {
+                    String[] entryKeySet = existingKey.split("\\|");
+                    String columnNameOfCountSet = entryKeySet[0];
+
+                    if (entryKey.equals(columnNameOfCountSet)) {
+                        getNrOfCountPerSetComb.put(columnNameOfCountSet, (double) count.getAndIncrement());
+                    }
+                });
+            }
+        });
+    }
+
+    private static void set0ProbabilityForEmptySetElements() {
+        fullCountPerSetComb = countPerSetComb;
+        int initialSize = fullCountPerSetComb.size();
+
+        //maybe do a break each time it finds one (TBDetermined)
+        getNrOfCountPerSetComb.forEach((existingKey, existingValue) -> {
+            if (existingValue == 1) {
+                for (Map.Entry<String, Double> entry : fullCountPerSetComb.entrySet()) {
+                    String fullCKey = entry.getKey();
+                    String[] entryKeySet = fullCKey.split("\\|");
+                    String label = entryKeySet[1];
+                    String endResult;
+                    if (label.equals(labelColYes)) {
+                        endResult = fullCKey.replace("|" + label, "|" + labelColNo);
+                    } else {
+                        endResult = fullCKey.replace("|" + label, "|" + labelColYes);
+                    }
+                    fullCountPerSetComb.putIfAbsent(endResult, 0.0);
+                    int sizeToTest = fullCountPerSetComb.size();
+                    if (initialSize < sizeToTest) {
+                        break;
+                    }
+                }
+            }
+        });
+    }
+
 }
