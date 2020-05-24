@@ -78,85 +78,6 @@ public class Lab3 {
         draftDatasetTable();
     }
 
-    private static void draftDatasetTable() {
-        LinkedList<LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>>> listOfMaps = new LinkedList<>();
-        generateValuesForTable(listOfMaps);
-
-        columnWithUniqueElements.forEach((uniqueKey, uniqueValue) -> {
-            for (Map.Entry<String, Integer> entry : uniqueValue.entrySet()) {
-                String valueOfColumn = entry.getKey();
-                colBreak:
-                for (LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>> map : listOfMaps) {
-                    for (Map.Entry<String, LinkedHashMap<String, LinkedList<Double>>> mapEntry : map.entrySet()) {
-                        String columnName = mapEntry.getKey();
-                        if (valueOfColumn.equals(columnName)) {
-                            listOfMapsPerColumn.add(map);
-                            break colBreak;
-                        }
-                    }
-                }
-                if (listOfMapsPerColumn.size() == uniqueValue.size()) {
-                    tableDataSetPerColumn.putIfAbsent(uniqueKey,listOfMapsPerColumn);
-                    listOfMapsPerColumn = new LinkedList<>();
-                }
-            }
-        });
-
-        //cold is 0.811 not 0.818
-    }
-
-    private static void generateValuesForTable(LinkedList<LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>>> listOfMaps) {
-        columnWithCurrentColEntropy = new LinkedHashMap<>();
-        valueWithEntropy = new LinkedHashMap<>();
-
-        columnWithUniqueElements.forEach((colUnK, colUnV) -> {
-            colUnV.forEach((currentCol, nrOfThem) -> {
-                fullCountPerSetComb.forEach((existingKey, existingValue) -> {
-                    String[] keyParts = existingKey.split("\\|");
-                    String colName = keyParts[0];
-                    String label = keyParts[1];
-                    if (colName.equals(currentCol)) {
-                        fullCountPerSetComb.forEach((findSameKey, findDiffValue) -> {
-                            String[] sameKeyParts = findSameKey.split("\\|");
-                            String sameColName = sameKeyParts[0];
-                            String diffLabel = sameKeyParts[1];
-                            if (sameColName.equals(colName)) {
-                                if (label.equals(diffLabel)) {
-                                    valueWithEntropy.computeIfAbsent(diffLabel, k -> new LinkedList<>()).add(existingValue);
-                                } else {
-                                    valueWithEntropy.computeIfAbsent(diffLabel, k -> new LinkedList<>()).add(findDiffValue);
-                                }
-                            }
-                        });
-
-                        Iterator<Map.Entry<String, LinkedList<Double>>> iterator = valueWithEntropy.entrySet().iterator();
-                        double firstValueForEd = iterator.next().getValue().getFirst();
-                        Map.Entry<String, LinkedList<Double>> lastElement = null;
-                        while (iterator.hasNext()) {
-                            lastElement = iterator.next();
-                        }
-                        double secondValueForEd = Objects.requireNonNull(lastElement).getValue().getFirst();
-
-                        currentColEntropy = getLabelEntropy(firstValueForEd, secondValueForEd);
-                        valueWithEntropy.computeIfAbsent(labelColNo, k -> new LinkedList<>()).add(currentColEntropy);
-
-                        currentColEntropy = getLabelEntropy(secondValueForEd, firstValueForEd);
-                        valueWithEntropy.computeIfAbsent(labelColYes, k -> new LinkedList<>()).add(currentColEntropy);
-
-                        columnWithCurrentColEntropy.putIfAbsent(currentCol, valueWithEntropy);
-
-                        if (!listOfMaps.contains(columnWithCurrentColEntropy)) {
-                            listOfMaps.add(columnWithCurrentColEntropy);
-                        }
-                        valueWithEntropy = new LinkedHashMap<>();
-                        columnWithCurrentColEntropy = new LinkedHashMap<>();
-                    }
-                });
-            });
-        });
-    }
-
-
     public static void retrieveFileData(File retrieveFile) throws FileNotFoundException {
         Scanner interactive = new Scanner(retrieveFile);
 
@@ -361,6 +282,84 @@ public class Lab3 {
                 }
             }
         });
+    }
+
+    private static void generateValuesForTable(LinkedList<LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>>> listOfMaps) {
+        columnWithCurrentColEntropy = new LinkedHashMap<>();
+        valueWithEntropy = new LinkedHashMap<>();
+
+        columnWithUniqueElements.forEach((colUnK, colUnV) -> {
+            colUnV.forEach((currentCol, nrOfThem) -> {
+                fullCountPerSetComb.forEach((existingKey, existingValue) -> {
+                    String[] keyParts = existingKey.split("\\|");
+                    String colName = keyParts[0];
+                    String label = keyParts[1];
+                    if (colName.equals(currentCol)) {
+                        fullCountPerSetComb.forEach((findSameKey, findDiffValue) -> {
+                            String[] sameKeyParts = findSameKey.split("\\|");
+                            String sameColName = sameKeyParts[0];
+                            String diffLabel = sameKeyParts[1];
+                            if (sameColName.equals(colName)) {
+                                if (label.equals(diffLabel)) {
+                                    valueWithEntropy.computeIfAbsent(diffLabel, k -> new LinkedList<>()).add(existingValue);
+                                } else {
+                                    valueWithEntropy.computeIfAbsent(diffLabel, k -> new LinkedList<>()).add(findDiffValue);
+                                }
+                            }
+                        });
+
+                        Iterator<Map.Entry<String, LinkedList<Double>>> iterator = valueWithEntropy.entrySet().iterator();
+                        double firstValueForEd = iterator.next().getValue().getFirst();
+                        Map.Entry<String, LinkedList<Double>> lastElement = null;
+                        while (iterator.hasNext()) {
+                            lastElement = iterator.next();
+                        }
+                        double secondValueForEd = Objects.requireNonNull(lastElement).getValue().getFirst();
+
+                        currentColEntropy = getLabelEntropy(firstValueForEd, secondValueForEd);
+                        valueWithEntropy.computeIfAbsent(labelColNo, k -> new LinkedList<>()).add(currentColEntropy);
+
+                        currentColEntropy = getLabelEntropy(secondValueForEd, firstValueForEd);
+                        valueWithEntropy.computeIfAbsent(labelColYes, k -> new LinkedList<>()).add(currentColEntropy);
+
+                        columnWithCurrentColEntropy.putIfAbsent(currentCol, valueWithEntropy);
+
+                        if (!listOfMaps.contains(columnWithCurrentColEntropy)) {
+                            listOfMaps.add(columnWithCurrentColEntropy);
+                        }
+                        valueWithEntropy = new LinkedHashMap<>();
+                        columnWithCurrentColEntropy = new LinkedHashMap<>();
+                    }
+                });
+            });
+        });
+    }
+
+    private static void draftDatasetTable() {
+        LinkedList<LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>>> listOfMaps = new LinkedList<>();
+        generateValuesForTable(listOfMaps);
+
+        columnWithUniqueElements.forEach((uniqueKey, uniqueValue) -> {
+            for (Map.Entry<String, Integer> entry : uniqueValue.entrySet()) {
+                String valueOfColumn = entry.getKey();
+                colBreak:
+                for (LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>> map : listOfMaps) {
+                    for (Map.Entry<String, LinkedHashMap<String, LinkedList<Double>>> mapEntry : map.entrySet()) {
+                        String columnName = mapEntry.getKey();
+                        if (valueOfColumn.equals(columnName)) {
+                            listOfMapsPerColumn.add(map);
+                            break colBreak;
+                        }
+                    }
+                }
+                if (listOfMapsPerColumn.size() == uniqueValue.size()) {
+                    tableDataSetPerColumn.putIfAbsent(uniqueKey,listOfMapsPerColumn);
+                    listOfMapsPerColumn = new LinkedList<>();
+                }
+            }
+        });
+
+        //cold is 0.811 not 0.818
     }
 
 }
