@@ -34,6 +34,7 @@ public class Lab3 {
     private static LinkedList<Double> valueWithProbability;
 
     private static LinkedHashMap<String, LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>>> tableDataSet = new LinkedHashMap<>();
+    private static LinkedHashMap<String, LinkedList<LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>>>> tableDataSetPerColumn = new LinkedHashMap<>();
     private static LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>> columnWithCurrentColEntropy = new LinkedHashMap<>();
     private static LinkedHashMap<String, LinkedList<Double>> valueWithEntropy = new LinkedHashMap<>();
 
@@ -43,6 +44,8 @@ public class Lab3 {
     private static final AtomicReference<Double> nrOfLabelYes = new AtomicReference<>((double) 0);
     private static final AtomicReference<Double> nrOfLabelNo = new AtomicReference<>((double) 0);
     private static final LinkedHashMap<String, LinkedList<Double>> labelRelativeFreq = new LinkedHashMap<>();
+
+    private static  LinkedList<LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>>> listOfMapsPerColumn= new LinkedList<>();
 
     public static void main(String[] args) throws FileNotFoundException {
         getID3Data = getGetID3();
@@ -76,8 +79,34 @@ public class Lab3 {
     }
 
     private static void draftDatasetTable() {
-        columnWithCurrentColEntropy = new LinkedHashMap<>();
         LinkedList<LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>>> listOfMaps = new LinkedList<>();
+        generateValuesForTable(listOfMaps);
+
+        columnWithUniqueElements.forEach((uniqueKey, uniqueValue) -> {
+            for (Map.Entry<String, Integer> entry : uniqueValue.entrySet()) {
+                String valueOfColumn = entry.getKey();
+                colBreak:
+                for (LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>> map : listOfMaps) {
+                    for (Map.Entry<String, LinkedHashMap<String, LinkedList<Double>>> mapEntry : map.entrySet()) {
+                        String columnName = mapEntry.getKey();
+                        if (valueOfColumn.equals(columnName)) {
+                            listOfMapsPerColumn.add(map);
+                            break colBreak;
+                        }
+                    }
+                }
+                if (listOfMapsPerColumn.size() == uniqueValue.size()) {
+                    tableDataSetPerColumn.putIfAbsent(uniqueKey,listOfMapsPerColumn);
+                    listOfMapsPerColumn = new LinkedList<>();
+                }
+            }
+        });
+
+        //cold is 0.811 not 0.818
+    }
+
+    private static void generateValuesForTable(LinkedList<LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>>> listOfMaps) {
+        columnWithCurrentColEntropy = new LinkedHashMap<>();
         valueWithEntropy = new LinkedHashMap<>();
 
         columnWithUniqueElements.forEach((colUnK, colUnV) -> {
@@ -125,8 +154,6 @@ public class Lab3 {
                 });
             });
         });
-
-        //cold is 0.811 not 0.818
     }
 
 
