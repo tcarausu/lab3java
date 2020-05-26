@@ -5,8 +5,6 @@ import java.util.LinkedList;
 
 public class ID3Element {
     private LinkedList<String> id3FedElements;
-    private String elLine;
-    private LinkedHashMap<String, LinkedHashMap<String, LinkedList<LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>>>>> lineWithAccordingMap = new LinkedHashMap<>();
 
     public ID3Element() {
     }
@@ -24,19 +22,4 @@ public class ID3Element {
         this.id3FedElements = id3FedElements;
     }
 
-    public String getElLine() {
-        return elLine;
-    }
-
-    public void setElLine(String elLine) {
-        this.elLine = elLine;
-    }
-
-    public LinkedHashMap<String, LinkedHashMap<String, LinkedList<LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>>>>> getLineWithAccordingMap() {
-        return lineWithAccordingMap;
-    }
-
-    public void setLineWithAccordingMap(LinkedHashMap<String, LinkedHashMap<String, LinkedList<LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>>>>> lineWithAccordingMap) {
-        this.lineWithAccordingMap = lineWithAccordingMap;
-    }
 }

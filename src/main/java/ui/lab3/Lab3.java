@@ -50,6 +50,8 @@ public class Lab3 {
 
     private static AtomicReference<Double> totalEnt;
     private static LinkedHashMap<String, Double> colNameAndTotalEntropy = new LinkedHashMap<>();
+    private static LinkedList<LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>>> columnsToUse = new LinkedList<>();
+    private static LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>> columnToUse = new LinkedHashMap<>();
 
     public static void main(String[] args) throws FileNotFoundException {
         getID3Data = getGetID3();
@@ -98,6 +100,7 @@ public class Lab3 {
 
     private static void goIGMoreInDepth(LinkedHashMap<String, LinkedList<LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>>>> tableDataSetPerColumn) {
         LinkedHashMap<String, LinkedList<LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>>>> mapWitOnly1ColLabel = new LinkedHashMap<>();
+        LinkedHashMap<String, LinkedList<LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>>>> mapToTest = new LinkedHashMap<>();
 
         tableDataSetPerColumn.forEach((tableCol, tableVal) -> {
             for (LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>> tableV : tableVal) {
@@ -130,8 +133,8 @@ public class Lab3 {
             double currentEl = list.get(i);
             double nexEl = list.get(i + 1);
             findMaxFeatureEntropy = Math.max(currentEl, nexEl);
-
         }
+
         String usingLeaf = "";
         for (Map.Entry<String, Double> entry : valuesOfTable.entrySet()) {
             String name = entry.getKey();
@@ -142,89 +145,78 @@ public class Lab3 {
             }
         }
 
-
         LinkedList<ID3Element> id3ElemWithSameLeafComponent = new LinkedList<>();
         for (ID3Element element : id3Elements) {
-            StringBuilder elLine = new StringBuilder();
             for (String colValue : element.getId3FedElements()) {
                 if (colValue.equals(usingLeaf)) {
-                    for (String elElems : element.getId3FedElements()) {
-                        elLine.append(elElems).append("|");
-                    }
-                    element.setElLine(elLine.toString());
                     id3ElemWithSameLeafComponent.add(element);
                 }
             }
         }
 
-        AtomicReference<Double> usableEntropy = new AtomicReference<>((double) 0);
-        String finalUsingLeaf = usingLeaf;
-
-        tableDataSetPerColumn.forEach((colN, tableList) -> {
-            for (LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>> tableV : tableList) {
-                tableV.forEach((tableValueName, labelValues) -> {
-                    for (Map.Entry<String, LinkedList<Double>> entry : labelValues.entrySet()) {
-                        LinkedList<Double> values = entry.getValue();
-                        if (tableValueName.equals(finalUsingLeaf)) {
-                            usableEntropy.set(values.getLast());
-                            break;
-                        }
-                    }
-                });
-            }
-        });
-
-        tableDataSetPerColumn.forEach((colN, tableList) -> {
-            for (LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>> tableV : tableList) {
-                tableV.forEach((tableValueName, labelValues) -> {
-                    for (Map.Entry<String, LinkedList<Double>> entry : labelValues.entrySet()) {
-                        LinkedList<Double> values = entry.getValue();
-                        if (tableValueName.equals(finalUsingLeaf)) {
-                            usableEntropy.set(values.getLast());
-                            break;
-                        }
-                    }
-                });
-            }
-        });
-
-        LinkedHashMap<String, LinkedHashMap<String, LinkedList<LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>>>>> elNewMapToUse = new LinkedHashMap<>();
-        LinkedHashMap<String, LinkedList<LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>>>> newMapToUse = new LinkedHashMap<>();
-        LinkedList<LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>>> columnsToUse = new LinkedList<>();
-        LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>> columnToUse = new LinkedHashMap<>();
-
-        for (ID3Element elementToTest : id3ElemWithSameLeafComponent) {
-            String[] columns = elementToTest.getElLine().split("\\|");
-            LinkedList<String> columnsToFeed = new LinkedList<>(Arrays.asList(columns));
-            for (String colName : columnsToFeed) {
-//                int indexOfColName = columnsToFeed.indexOf(colName);
-                entryBreak:
-                for (Map.Entry<String, LinkedList<LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>>>> tableEntry : tableDataSetPerColumn.entrySet()) {
-                    String tableCol = tableEntry.getKey();
-                    LinkedList<LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>>> tableList = tableEntry.getValue();
-                    for (LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>> tableV : tableList) {
-//                        int indexOfTableV = tableList.indexOf(tableV); // sunny
-                        for (Map.Entry<String, LinkedHashMap<String, LinkedList<Double>>> colValueWithLabel : tableV.entrySet()) {
-                            String tableValueName = colValueWithLabel.getKey();
-                            LinkedHashMap<String, LinkedList<Double>> labelValues = colValueWithLabel.getValue();
-                            if (tableValueName.equals(colName)) {
-                                columnToUse.putIfAbsent(tableValueName, labelValues);
-                                columnsToUse.add(columnToUse);
-                                newMapToUse.putIfAbsent(tableCol, columnsToUse);
-                                break entryBreak;
+        for (ID3Element element : id3ElemWithSameLeafComponent) {
+            for (int i = 0; i < element.getId3FedElements().size() - 1; i++) {
+                String colToTest = element.getId3FedElements().get(i);
+                String label = element.getId3FedElements().get(element.getId3FedElements().size() - 1); // last element in ID3
+                if (colToTest.equals(usingLeaf)) {
+                    String finalUsingLeaf = usingLeaf;
+                    mapWitOnly1ColLabel.forEach((col, listV) -> {
+                        for (LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>> v : listV) {
+                            LinkedHashMap<String, LinkedList<Double>> values = v.entrySet().iterator().next().getValue();
+                            for (String key : v.keySet()) {
+                                if (key.equals(finalUsingLeaf)) {
+                                    columnToUse.putIfAbsent(key, values);
+                                    columnsToUse.add(columnToUse);
+                                    mapToTest.putIfAbsent(col, columnsToUse);
+                                }
                             }
-
+                        }
+                    });
+                    columnsToUse = new LinkedList<>();
+                    columnToUse = new LinkedHashMap<>();
+                    continue;
+                }
+                LinkedList<Double> nrOfElWithEntropy = new LinkedList<>();
+                int count = 1;
+                if (mapToTest.size() < tableDataSetPerColumn.size()) {
+                    for (Map.Entry<String, LinkedList<LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>>>> e : tableDataSetPerColumn.entrySet()) {
+                        String col = e.getKey();
+                        LinkedList<LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>>> listV = e.getValue();
+                        labelT:
+                        for (LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>> v : listV) {
+                            LinkedHashMap<String, LinkedList<Double>> values = v.entrySet().iterator().next().getValue();
+                            LinkedHashMap<String, LinkedList<Double>> valuesToAdd = new LinkedHashMap<>();
+                            for (String key : v.keySet()) {
+                                if (key.equals(colToTest)) {
+                                    for (Map.Entry<String, LinkedList<Double>> entry : values.entrySet()) {
+                                        String labelV = entry.getKey();
+                                        LinkedList<Double> valuesL = entry.getValue();
+                                        if (labelV.equals(label)) {
+                                            nrOfElWithEntropy.add((double) count);
+                                            nrOfElWithEntropy.add(valuesL.getLast());//entropy
+                                            valuesToAdd.putIfAbsent(label, nrOfElWithEntropy);
+                                            String s = "s";
+                                            break;
+                                        }
+                                    }
+                                    columnToUse.putIfAbsent(key, valuesToAdd);
+                                    columnsToUse.add(columnToUse);
+                                    mapToTest.put(col, columnsToUse);
+                                    columnToUse = new LinkedHashMap<>();
+                                    columnsToUse = new LinkedList<>();
+                                    break labelT;
+                                }
+                            }
                         }
                     }
+                }
+                if (mapToTest.size() == tableDataSetPerColumn.size()){
+                    String s = "s";
 
                 }
-                columnToUse = new LinkedHashMap<>();
-                columnsToUse = new LinkedList<>();
-                String s = "s";
+                    String s = "s";
+
             }
-            elNewMapToUse.putIfAbsent(elementToTest.getElLine(), newMapToUse);
-            elementToTest.setLineWithAccordingMap(elNewMapToUse);
-            newMapToUse = new LinkedHashMap<>();
 
         }
 
