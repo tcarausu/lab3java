@@ -1,10 +1,8 @@
 package ui.utils;
 
-import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
-
-import static ui.utils.RegexOperator.labelColNo;
-import static ui.utils.RegexOperator.labelColYes;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.Map;
 
 public class BayesRelation {
 
@@ -196,7 +194,7 @@ public class BayesRelation {
 //    }
 //
 
-//    public static double getLikelihoodByLabel(LinkedHashMap<String, LinkedList<Double>> labelRelativeFreq, String label) {
+    //    public static double getLikelihoodByLabel(LinkedHashMap<String, LinkedList<Double>> labelRelativeFreq, String label) {
 //        LinkedList<Map.Entry<String, LinkedList<Double>>> entryList = new LinkedList<>(labelRelativeFreq.entrySet());
 //        int indexOfLabel = new ArrayList<>(labelRelativeFreq.keySet()).indexOf(label);
 //
@@ -219,7 +217,7 @@ public class BayesRelation {
 //
 //        }
 //    }
-public void usefulThings() {
+    public void usefulThings() {
 //        int indexOfKey = new LinkedList<>(countPerSetComb.keySet()).indexOf(existingKey);
 //        int lastPos = new LinkedList<>(countPerSetComb.keySet()).indexOf(lastCountPerSetCombKeyElement);
 //        double countPerKey = fullCountPerSetComb.get(entryKey);
@@ -227,6 +225,34 @@ public void usefulThings() {
 //        LinkedList<String> countPerSetCombKeySet = new LinkedList<>(countPerSetComb.keySet());
 //        String lastCountPerSetCombKeyElement = countPerSetCombKeySet.getLast();
 
-}
+    }
 
+    public void s() {
+//        if (i - 1 == indexOfKey) {
+//            for (Map.Entry<String, LinkedList<Double>> entry : values.entrySet()) {
+//                LinkedList<Double> valuesL = entry.getValue();
+//                nrOfElWithEntropy.add(1.0);
+//                nrOfElWithEntropy.add(valuesL.getLast());//entropy
+//                valuesToAdd.putIfAbsent(label, nrOfElWithEntropy);
+//                break;
+//            }
+//            columnToUse.putIfAbsent(colToTest, valuesToAdd);
+//            columnsToUse.add(columnToUse);
+//            listV.add(columnToUse);
+//            columnToUse = new LinkedHashMap<>();
+//            columnsToUse = new LinkedList<>();
+//            valuesTested++;
+//            if (valuesTested == testingColNames.size()) {
+//                break ssB;
+//            }
+//            break nextItem;
+//        }
+////                                        //contains the testing element
+//                                        if (i < element.getId3FedElements().size() - 2) {
+//                                            String s = "s";
+//                                            break nextItem;
+//                                        } else if (i == element.getId3FedElements().size() - 2) {
+//                                            break ssB;
+//                                        }
+    }
 }
