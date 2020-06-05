@@ -1,7 +1,10 @@
 package ui.lab3;
 
 
+import ui.model.ColumnValue;
 import ui.model.ID3Element;
+import ui.model.LabelForColumn;
+import ui.model.LeafColValue;
 import ui.utils.Constant;
 
 import java.io.File;
@@ -11,14 +14,12 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static ui.utils.Lab3Utils.getGetID3;
 import static ui.utils.Lab3Utils.log2;
 import static ui.utils.RegexOperator.*;
 
 
 public class ID3LabAdjustment {
     private static final DecimalFormat newFormat = new DecimalFormat("#.###");
-    private static LinkedList<String> getID3Data = new LinkedList<>();
 
     private static final LinkedHashMap<Integer, LinkedList<String>> columnListWithElements = new LinkedHashMap<>();
     private static final LinkedHashMap<Integer, String> featureAndLabelList = new LinkedHashMap<>();
@@ -51,9 +52,14 @@ public class ID3LabAdjustment {
     private static String positiveLabel;
     private static String negativeLabel;
 
-    public static void main(String[] args) throws FileNotFoundException {
-        getID3Data = getGetID3();
+    private static LinkedList<ColumnValue> tree = new LinkedList<>();
+    private static ColumnValue currentColV;
+    private static LeafColValue currentLeafColValue;
+    private static LabelForColumn currentLabel;
+    private static LinkedList<LabelForColumn> labelValues= new LinkedList<>();
+    private static LinkedList<LeafColValue> leafColValues= new LinkedList<>();
 
+    public static void main(String[] args) throws FileNotFoundException {
         retrieveFileData(new File(Constant.volleyball));
 //        retrieveFileData(new File(Constant.titanic_train_categorical));
 
@@ -91,56 +97,12 @@ public class ID3LabAdjustment {
 
         draftDatasetTable();
 
-String s = "s";
+        //ReduceHashmapToUsableModels
+        setID3ElementsTree();
     }
 
-    private static void getNrOfElementsForEachValuePerColumn() {
-        final AtomicInteger[] count = {new AtomicInteger(1)};
-        LinkedList<String> columnListToTest = new LinkedList<>();
 
-        LinkedList<String> columnNames = id3Elements.get(0).getId3FedElements();
-        for (int i = 0; i < columnNames.size(); i++) {
-            String column = columnNames.get(i);
-            featureAndLabelList.putIfAbsent(i, column);
-            columnWithAllVariables.putIfAbsent(column, new LinkedList<>());
-        }
 
-        for (int i = 1; i < id3Elements.size(); i++) {
-            ID3Element elementList = id3Elements.get(i);
-            LinkedList<String> values = elementList.getId3FedElements();
-            for (int j = 0; j < featureAndLabelList.size(); j++) {
-                String column = values.get(j);
-                columnListWithElements.computeIfAbsent(i - 1, k -> new LinkedList<>()).add(column);
-            }
-        }
-
-        LinkedList<String> featureList = new LinkedList<>(featureAndLabelList.values());
-        for (String featureOrLabel : featureList) {
-            int currentColumnIndex = featureList.indexOf(featureOrLabel);
-
-            for (LinkedList<String> currentColumnValue : columnListWithElements.values()) {
-                String currentValue = currentColumnValue.get(currentColumnIndex);
-                columnWithAllVariables.computeIfAbsent(featureOrLabel, k -> new LinkedList<>()).add(currentValue);
-            }
-        }
-
-        LinkedList<String> arrK = new LinkedList<>(Arrays.asList(columnWithAllVariables.keySet().toArray(new String[0])));
-
-        columnWithAllVariables.forEach((fOrLKey, fOrLValue) -> {
-            for (String featureOrLabel : fOrLValue) {
-                retrieveNrOfDistinctElementsPerColumn(count[0], columnListToTest, featureOrLabel, fOrLKey);
-            }
-
-            LinkedHashMap<String, Integer> localElements = new LinkedHashMap<>(countElements);
-            columnWithUniqueElements.put(fOrLKey, localElements);
-            count[0] = new AtomicInteger(1);
-            if (fOrLKey.equals(arrK.get(arrK.size() - 1))) {
-                deriveLabelColumnProbabilities(localElements);
-            }
-            countElements.clear();
-        });
-
-    }
 
     private static void getPlayCountPerSetCombination(String likelihood) {
         if (!countPerSetComb.containsKey(likelihood)) {
@@ -269,6 +231,54 @@ String s = "s";
         });
     }
 
+    private static void getNrOfElementsForEachValuePerColumn() {
+        final AtomicInteger[] count = {new AtomicInteger(1)};
+        LinkedList<String> columnListToTest = new LinkedList<>();
+
+        LinkedList<String> columnNames = id3Elements.get(0).getId3FedElements();
+        for (int i = 0; i < columnNames.size(); i++) {
+            String column = columnNames.get(i);
+            featureAndLabelList.putIfAbsent(i, column);
+            columnWithAllVariables.putIfAbsent(column, new LinkedList<>());
+        }
+
+        for (int i = 1; i < id3Elements.size(); i++) {
+            ID3Element elementList = id3Elements.get(i);
+            LinkedList<String> values = elementList.getId3FedElements();
+            for (int j = 0; j < featureAndLabelList.size(); j++) {
+                String column = values.get(j);
+                columnListWithElements.computeIfAbsent(i - 1, k -> new LinkedList<>()).add(column);
+            }
+        }
+
+        LinkedList<String> featureList = new LinkedList<>(featureAndLabelList.values());
+        for (String featureOrLabel : featureList) {
+            int currentColumnIndex = featureList.indexOf(featureOrLabel);
+
+            for (LinkedList<String> currentColumnValue : columnListWithElements.values()) {
+                String currentValue = currentColumnValue.get(currentColumnIndex);
+                columnWithAllVariables.computeIfAbsent(featureOrLabel, k -> new LinkedList<>()).add(currentValue);
+            }
+        }
+
+        LinkedList<String> arrK = new LinkedList<>(Arrays.asList(columnWithAllVariables.keySet().toArray(new String[0])));
+
+        columnWithAllVariables.forEach((fOrLKey, fOrLValue) -> {
+            for (String featureOrLabel : fOrLValue) {
+                retrieveNrOfDistinctElementsPerColumn(count[0], columnListToTest, featureOrLabel, fOrLKey);
+            }
+
+            LinkedHashMap<String, Integer> localElements = new LinkedHashMap<>(countElements);
+            columnWithUniqueElements.put(fOrLKey, localElements);
+            count[0] = new AtomicInteger(1);
+            if (fOrLKey.equals(arrK.get(arrK.size() - 1))) {
+                deriveLabelColumnProbabilities(localElements);
+            }
+            countElements.clear();
+        });
+
+    }
+
     private static void generateValuesForTable(
             LinkedList<LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>>> listOfMaps) {
         columnWithCurrentColEntropy = new LinkedHashMap<>();
@@ -362,6 +372,7 @@ String s = "s";
         });
     }
 
+    //AuxiliaryMethods
     private static void setPositiveAndNegativeLabelNames(ID3Element element) {
         String label = element.getId3FedElements().getLast();
         if (label.equals(labelColYes) || label.equals(labelColNo)) {
@@ -411,5 +422,38 @@ String s = "s";
         ID3Element firstTestingElement = id3Elements.get(1);
         setPositiveAndNegativeLabelNames(firstTestingElement);
     }
+    /**
+     * ReduceHashmapToSimpleModels
+     */
+    private static void setID3ElementsTree() {
+        currentColV = new ColumnValue();
+        currentLeafColValue = new LeafColValue();
+        currentLabel = new LabelForColumn();
 
+        tableDataSetPerColumn.forEach((column, values) -> {
+            currentColV.setColumnName(column);
+
+            for (LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>> leafValues : values) {
+                leafValues.forEach((currentLeaf, labelValuesOfLeaf) -> {
+                    currentLeafColValue.setColumnValue(currentLeaf);
+                    labelValuesOfLeaf.forEach((label, listWithEntropy) -> {
+                        currentLabel.setLabel(label);
+                        currentLabel.setNrOfSimilarElements(listWithEntropy.getFirst());
+                        currentLabel.setEntropyOfColumn(listWithEntropy.getLast());
+                        labelValues.add(currentLabel);
+
+                        currentLeafColValue.setLabelValues(labelValues);
+                        currentLabel = new LabelForColumn();
+                    });
+                    leafColValues.add(currentLeafColValue);
+                    currentColV.setLeafValues(leafColValues);
+                    currentLeafColValue = new LeafColValue();
+                    labelValues = new LinkedList<>();
+                });
+            }
+            tree.add(currentColV);
+            currentColV = new ColumnValue();
+            leafColValues = new LinkedList<>();
+        });
+    }
 }
