@@ -1,15 +1,8 @@
 package ui;
 
-import ui.utils.Constant;
-
-import java.io.File;
-import java.io.FileNotFoundException;
-
-import static ui.lab3.Lab3.*;
-
 public class Solution {
 
-	public static void main(String ... args) {
+    public static void main(String... args) {
 
 //		setColumnPosition();
 //
@@ -24,6 +17,6 @@ public class Solution {
 //		} catch (FileNotFoundException e) {
 //			e.printStackTrace();
 //		}
-	}
+    }
 
 }

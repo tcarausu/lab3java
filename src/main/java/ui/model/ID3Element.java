@@ -1,6 +1,5 @@
-package ui.utils;
+package ui.model;
 
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 
 public class ID3Element {

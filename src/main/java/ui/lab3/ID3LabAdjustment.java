@@ -1,8 +1,8 @@
 package ui.lab3;
 
 
+import ui.model.ID3Element;
 import ui.utils.Constant;
-import ui.utils.ID3Element;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -13,8 +13,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static ui.utils.Lab3Utils.getGetID3;
 import static ui.utils.Lab3Utils.log2;
-import static ui.utils.RegexOperator.labelColNo;
-import static ui.utils.RegexOperator.labelColYes;
+import static ui.utils.RegexOperator.*;
 
 
 public class ID3LabAdjustment {
@@ -46,21 +45,11 @@ public class ID3LabAdjustment {
 
     private static LinkedList<LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>>> listOfMapsPerColumn = new LinkedList<>();
     private static LinkedHashMap<String, LinkedList<LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>>>> tableDataSetPerColumn = new LinkedHashMap<>();
-    private static LinkedHashMap<String, LinkedList<LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>>>> subsequentMapToTest = new LinkedHashMap<>();
-    private static LinkedList<Double> listOfEntropy = new LinkedList<>();
 
     private static AtomicReference<Double> totalEnt;
-    private static AtomicInteger depth;
-    private static double currentEntropy;
-    private static String usingLeaf;
-    private static LinkedHashMap<String, Double> colNameAndTotalEntropy = new LinkedHashMap<>();
-    private static LinkedList<LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>>> columnsToUse = new LinkedList<>();
-    private static LinkedHashMap<String, LinkedHashMap<String, LinkedList<Double>>> columnToUse = new LinkedHashMap<>();
-    private static LinkedList<String> currentPath;
-    private static LinkedList<LinkedList<Double>> columnEntropy;
-    private static LinkedList<String> formerPath;
-    private static LinkedHashMap<String, Double> columnWithLeafAndIG;
-    private static double finalEntropyPerLeafColumn;
+
+    private static String positiveLabel;
+    private static String negativeLabel;
 
     public static void main(String[] args) throws FileNotFoundException {
         getID3Data = getGetID3();
@@ -101,19 +90,8 @@ public class ID3LabAdjustment {
         set0ProbabilityForEmptySetElements();
 
         draftDatasetTable();
-    }
 
-    public static void retrieveFileData(File retrieveFile) throws FileNotFoundException {
-        Scanner interactive = new Scanner(retrieveFile);
-
-        while (interactive.hasNext()) {
-            String knowledge = interactive.nextLine();
-
-            String[] elems = knowledge.split(",");
-            LinkedList<String> vElements = new LinkedList<>(Arrays.asList(elems));
-            ID3Element element = new ID3Element(vElements);
-            id3Elements.add(element);
-        }
+String s = "s";
     }
 
     private static void getNrOfElementsForEachValuePerColumn() {
@@ -175,10 +153,10 @@ public class ID3LabAdjustment {
 
     private static void getNrByLabelCol() {
         labelRelativeFreq.forEach((key, value) -> {
-            if (key.equals(labelColYes)) {
+            if (key.equals(positiveLabel)) {
                 double totalY = value.get(0); //we saved it as 1st element
                 nrOfLabelYes.set(totalY);
-            } else if (key.equals(labelColNo)) {
+            } else if (key.equals(negativeLabel)) {
                 double totalY = value.get(0); //we saved it as 1st element
                 nrOfLabelNo.set(totalY);
             }
@@ -188,9 +166,9 @@ public class ID3LabAdjustment {
     private static void retrieveLikelihoodOfElements() {
         countPerSetComb.forEach((key, value) -> {
             double likelihoodOfLabel = 0;
-            if (key.contains(labelColYes)) {
+            if (key.contains(positiveLabel)) {
                 likelihoodOfLabel = nrOfLabelYes.get();
-            } else if (key.contains(labelColNo)) {
+            } else if (key.contains(negativeLabel)) {
                 likelihoodOfLabel = nrOfLabelNo.get();
             }
             double likelihoodOfSubset = getLikelihoodByPlayCount(value, likelihoodOfLabel);
@@ -222,14 +200,14 @@ public class ID3LabAdjustment {
 
     private static void deriveLabelColumnProbabilities(LinkedHashMap<String, Integer> elements) {
         elements.forEach((key, value) -> {
-            if (key.equals(labelColYes)) {
+            if (key.equals(positiveLabel)) {
                 double probability = getPriorProbabilityByRelativeFrequency(value);
                 valueWithProbability = new LinkedList<>();
                 valueWithProbability.add(Double.valueOf(value));
                 valueWithProbability.add(probability);
                 labelRelativeFreq.put(key, valueWithProbability);
 
-            } else if (key.equals(labelColNo)) {
+            } else if (key.equals(negativeLabel)) {
                 double probability = getPriorProbabilityByRelativeFrequency(value);
                 valueWithProbability = new LinkedList<>();
                 valueWithProbability.add(Double.valueOf(value));
@@ -276,10 +254,10 @@ public class ID3LabAdjustment {
                     String[] entryKeySet = fullCKey.split("\\|");
                     String label = entryKeySet[1];
                     String endResult;
-                    if (label.equals(labelColYes)) {
-                        endResult = fullCKey.replace("|" + label, "|" + labelColNo);
+                    if (label.equals(positiveLabel)) {
+                        endResult = fullCKey.replace("|" + label, "|" + negativeLabel);
                     } else {
-                        endResult = fullCKey.replace("|" + label, "|" + labelColYes);
+                        endResult = fullCKey.replace("|" + label, "|" + positiveLabel);
                     }
                     fullCountPerSetComb.putIfAbsent(endResult, 0.0);
                     int sizeToTest = fullCountPerSetComb.size();
@@ -324,9 +302,9 @@ public class ID3LabAdjustment {
                         }
                         double secondValueForEd = Objects.requireNonNull(lastElement).getValue().getFirst();
                         currentColEntropy = getLabelEntropy(firstValueForEd, secondValueForEd);
-                        valueWithEntropy.computeIfAbsent(labelColNo, k -> new LinkedList<>()).add(currentColEntropy);
+                        valueWithEntropy.computeIfAbsent(negativeLabel, k -> new LinkedList<>()).add(currentColEntropy);
                         currentColEntropy = getLabelEntropy(secondValueForEd, firstValueForEd);
-                        valueWithEntropy.computeIfAbsent(labelColYes, k -> new LinkedList<>()).add(currentColEntropy);
+                        valueWithEntropy.computeIfAbsent(positiveLabel, k -> new LinkedList<>()).add(currentColEntropy);
                         columnWithCurrentColEntropy.putIfAbsent(currentCol, valueWithEntropy);
 
                         if (!listOfMaps.contains(columnWithCurrentColEntropy)) {
@@ -384,6 +362,17 @@ public class ID3LabAdjustment {
         });
     }
 
+    private static void setPositiveAndNegativeLabelNames(ID3Element element) {
+        String label = element.getId3FedElements().getLast();
+        if (label.equals(labelColYes) || label.equals(labelColNo)) {
+            positiveLabel = labelColYes;
+            negativeLabel = labelColNo;
+        } else if (label.equals(labelColTrue) || label.equals(labelColFalse)) {
+            positiveLabel = labelColTrue;
+            negativeLabel = labelColFalse;
+        }
+    }
+
     private static double entropyOfLabelDataset(double positiveEx, double negativeEx, double total) {
         if (negativeEx == 0.0) {
             return 0;
@@ -406,6 +395,21 @@ public class ID3LabAdjustment {
         } else {
             return 0;
         }
+    }
+
+    public static void retrieveFileData(File retrieveFile) throws FileNotFoundException {
+        Scanner interactive = new Scanner(retrieveFile);
+
+        while (interactive.hasNext()) {
+            String knowledge = interactive.nextLine();
+
+            String[] elems = knowledge.split(",");
+            LinkedList<String> vElements = new LinkedList<>(Arrays.asList(elems));
+            ID3Element element = new ID3Element(vElements);
+            id3Elements.add(element);
+        }
+        ID3Element firstTestingElement = id3Elements.get(1);
+        setPositiveAndNegativeLabelNames(firstTestingElement);
     }
 
 }
