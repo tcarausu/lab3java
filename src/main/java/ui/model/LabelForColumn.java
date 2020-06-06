@@ -1,14 +1,14 @@
 package ui.model;
 
 public class LabelForColumn {
-    double nrOfSimilarElements ;
-    double entropyOfColumn ;
-    String  label ;
+    String label;
+    double nrOfSimilarElements;
+    double entropyOfColumn;
 
     public LabelForColumn() {
     }
 
-    public LabelForColumn(double nrOfSimilarElements, double entropyOfColumn, String label) {
+    public LabelForColumn(String label, double nrOfSimilarElements, double entropyOfColumn) {
         this.nrOfSimilarElements = nrOfSimilarElements;
         this.entropyOfColumn = entropyOfColumn;
         this.label = label;
