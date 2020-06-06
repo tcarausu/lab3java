@@ -16,7 +16,9 @@ import java.util.Map;
 import static ui.lab3.Lab3.*;
 
 public class Solution {
-    private static StringBuilder consoleDisplay = new StringBuilder();
+    private static StringBuilder consoleDisplayColumns = new StringBuilder();
+    private static StringBuilder consoleDisplayLabels = new StringBuilder();
+    private static LinkedList<Integer> rowsOfData = new LinkedList<>();
 
     private static double generalEntropy;
     private static double depth = 0;
@@ -40,7 +42,12 @@ public class Solution {
         setupModelDataTable();
         startTraining();
 
-        System.out.println(consoleDisplay);
+        System.out.println(consoleDisplayColumns);
+        System.out.println(consoleDisplayLabels);
+        for (int i = 0; i < rowsOfData.size(); i += 2) {
+            int currentV = rowsOfData.get(i);
+            System.out.println(currentV+ " "+rowsOfData.get(1));
+        }
     }
 
     private static void startTraining() {
@@ -58,8 +65,10 @@ public class Solution {
         LinkedList<ColumnValue> subsequentDataset = new LinkedList<>();
         LinkedHashMap<String, Double> columnWithValue = new LinkedHashMap<>();
 
+        int total = 0;
+        int setCurrentTotal = 0;
         for (LeafColValue leafToTest : columnForSubsequentUse.getLeafValues()) {
-            if(leafToTest.getLabelValues().getFirst().getEntropyOfColumn()!=0){
+            if (leafToTest.getLabelValues().getFirst().getEntropyOfColumn() != 0) {
                 for (int i = 1; i < id3Elements.size(); i++) {
                     ID3Element element = id3Elements.get(i);
                     if (element.getId3FedElements().contains(leafToTest.getColumnValue())) {
@@ -67,14 +76,41 @@ public class Solution {
                     }
                 }
                 setElementsToColumnWithValue(columnWithValue, leafToTest, tree, subsequentDataset);
+                int indexOfLeaf = columnForSubsequentUse.getLeafValues().indexOf(leafToTest);
 
+                if (subsequentDataset.size() > (indexOfLeaf + 1)) {
+                    ColumnValue columnForIndex = subsequentDataset.get(indexOfLeaf + 1);
+                    consoleDisplayColumns.append(" ").append(depth).append(": ").append(columnForIndex.getColumnName());
+                    for (ColumnValue c : subsequentDataset) {
+                        total = total + c.getLeafValues().size();
+                    }
+                    setCurrentTotal = total - subsequentDataset.size();
+
+                    rowsOfData.add(setCurrentTotal);
+                    rowsOfData.add(total);
+
+                } else if (subsequentDataset.size() == (indexOfLeaf + 1)) {
+                    ColumnValue columnForIndex = subsequentDataset.get(indexOfLeaf);
+                    consoleDisplayColumns.append(" ").append(depth).append(": ").append(columnForIndex.getColumnName());
+
+                    rowsOfData.add(setCurrentTotal - subsequentDataset.size());
+                    rowsOfData.add(total);
+                }
+
+                for (ColumnValue c : subsequentDataset) {
+                    for (LeafColValue leaf : c.getLeafValues()) {
+                        for (LabelForColumn label : leaf.getLabelValues()) {
+                            consoleDisplayLabels.append(label.getLabel()).append(" ");
+                        }
+                    }
+                }
                 //moving Onto Next Leaf
                 listToTest = new LinkedList<>();
                 columnWithValue = new LinkedHashMap<>();
                 subsequentDataset = new LinkedList<>();
-            }else{
+            } else {
                 //leaf that has the 0 as entropy of testing Main Column
-                String s ="s";
+                String s = "s";
             }
 
         }
@@ -144,7 +180,7 @@ public class Solution {
                 if (columnEntropy == 0) {
                     setColumnForSubsequentUse(column);
                     leafColValueWith0OrLowestEntropy = leaf;
-                    consoleDisplay.append(depth).append(": ").append(column.getColumnName());
+                    consoleDisplayColumns.append(depth).append(": ").append(column.getColumnName());
                     depth++;
                 }
                 double firstVal = leaf.getLabelValues().getFirst().getNrOfSimilarElements();
@@ -166,7 +202,6 @@ public class Solution {
         LinkedList<LabelForColumn> subsequentDatasetLabelForColumn = new LinkedList<>();
         setColumnWithValue(columnWithValue, leafToTest);
 
-//        LabelForColumn labelForColumnToAdd;
         ColumnValue currentColumn = new ColumnValue();
         ColumnValue parentColumn = new ColumnValue();
 
